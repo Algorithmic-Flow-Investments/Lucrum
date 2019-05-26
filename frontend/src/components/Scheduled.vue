@@ -1,7 +1,15 @@
 <template>
-<div>
-	<list-segment v-for="transaction in scheduled" :key="scheduled.indexOf(transaction)" :colour="getColour(transaction)" :title="transaction.name" :subtitle="formatDate(transaction.date)" :amount="transaction.amount" :internal="transaction.internal"/>
-</div>
+	<div>
+		<list-segment
+			v-for="transaction in scheduled"
+			:key="scheduled.indexOf(transaction)"
+			:colour="getColour(transaction)"
+			:title="transaction.name"
+			:subtitle="formatDate(transaction.date)"
+			:amount="transaction.amount"
+			:internal="transaction.internal"
+		/>
+	</div>
 </template>
 
 <script>
@@ -22,7 +30,7 @@ export default {
 	data() {
 		return {
 			total: 0,
-		  absTotal: 0,
+			absTotal: 0,
 			scheduled: [],
 			types: {
 				in: [],
@@ -46,15 +54,17 @@ export default {
 			var date = moment(date);
 			return date.format("dddd, MMMM Do");
 		},
-	  getColour(transaction){
-		return this.colours[(transaction.internal) ? 'internal' : (transaction.amount > 0) ? 'in' : 'out'][this.types[(transaction.internal) ? 'internal' : (transaction.amount > 0) ? 'in' : 'out'].indexOf(transaction)]
-	  },
+		getColour(transaction) {
+			return this.colours[transaction.internal ? "internal" : transaction.amount > 0 ? "in" : "out"][
+				this.types[transaction.internal ? "internal" : transaction.amount > 0 ? "in" : "out"].indexOf(transaction)
+			];
+		},
 		fetchData() {
 			axios.get(window.APIROOT + "api/scheduled").then(response => {
 				this.scheduled = response.data;
-				this.scheduled.sort(function (a, b) {
-				  return moment(a.date).unix() - moment(b.date).unix()
-				})
+				this.scheduled.sort(function(a, b) {
+					return moment(a.date).unix() - moment(b.date).unix();
+				});
 				this.types = {
 					in: this.scheduled.filter(function(item) {
 						return item.amount > 0 && !item.internal;
@@ -72,18 +82,15 @@ export default {
 				}, 0);
 
 				this.absTotal = this.scheduled.reduce(function(total, cur) {
-				  console.log(total, cur);
-				  return total + Math.abs(cur.amount);
+					console.log(total, cur);
+					return total + Math.abs(cur.amount);
 				}, 0);
 				var parent = {
 					title: "Scheduled",
 					subtitle: "£" + numberWithCommas(this.total),
 					chart: this.scheduled.map(
 						function(cur, index) {
-							return [
-								(Math.abs(cur.amount) / this.absTotal) * 100,
-								this.getColour(cur)
-							];
+							return [(Math.abs(cur.amount) / this.absTotal) * 100, this.getColour(cur)];
 						}.bind(this)
 					)
 				};
@@ -97,5 +104,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

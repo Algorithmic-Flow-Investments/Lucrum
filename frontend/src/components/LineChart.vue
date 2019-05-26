@@ -1,16 +1,14 @@
 <template>
-<div class="chart">
-	<div class="segment" v-for="segment in data" :style="{background: segment[1], width: segment[0] + '%'}">
-
+	<div class="chart">
+		<div class="segment" v-for="segment in data" :style="{ background: segment[1], width: segment[0] + '%' }"></div>
 	</div>
-</div>
 </template>
 
 <script>
-  export default {
-	name: 'LineChart',
-	props: ['data']
-  }
+export default {
+	name: "LineChart",
+	props: ["data"]
+};
 </script>
 
 <style scoped>
@@ -18,12 +16,12 @@
 	height: 2px;
 	display: inline-block;
 }
-	.chart {
-		display: flex;
-		width: calc(100% + 40px);
-		transform: translate(-20px);
-		padding: 10px 0 10px 0;
-	}
+.chart {
+	display: flex;
+	width: calc(100% + 40px);
+	transform: translate(-20px);
+	padding: 10px 0 10px 0;
+}
 
 @media (max-width: 479px) {
 	.chart {

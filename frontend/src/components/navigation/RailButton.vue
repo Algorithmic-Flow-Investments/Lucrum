@@ -1,8 +1,8 @@
 <template>
-<div @click="go">
-  <mdc-icon :icon="icon" :class="{unselected: !selected, flipY: link == 'scheduled'}"></mdc-icon>
-	<span v-show="selected" class="name">{{link}}</span>
-</div>
+	<div @click="go">
+		<mdc-icon :icon="icon" :class="{ unselected: !selected, flipY: link == 'scheduled' }"></mdc-icon>
+		<span v-show="selected" class="name">{{ link }}</span>
+	</div>
 </template>
 
 <script>
@@ -11,33 +11,33 @@ export default {
 	props: ["link"],
 	methods: {
 		go() {
-		  if (this.link === "overview"){
-			this.$router.push("/")
-			return
-		  }
+			if (this.link === "overview") {
+				this.$router.push("/");
+				return;
+			}
 			this.$router.push("/" + this.link);
 		}
 	},
 	computed: {
 		icon() {
 			switch (this.link) {
-			case "overview":
-				return "pie_chart";
-			case "accounts":
-				return "account_balance";
-			case "budget":
-			  	return "attach_money";
-	  		case "transactions":
-				return "list";
-			case "scheduled":
-				return "show_chart";
+				case "overview":
+					return "pie_chart";
+				case "accounts":
+					return "account_balance";
+				case "budget":
+					return "attach_money";
+				case "transactions":
+					return "list";
+				case "scheduled":
+					return "show_chart";
 			}
 		},
 		selected() {
 			if (this.$route.path === "/" && this.link === "overview") {
 				return true;
 			}
-			return this.$route.path.split('/')[1] === this.link;
+			return this.$route.path.split("/")[1] === this.link;
 		}
 	}
 };
@@ -50,7 +50,6 @@ export default {
 	width: 100%;
 	text-align: center;
 }
-
 
 div {
 	padding-top: 42px;
@@ -67,7 +66,7 @@ div {
 	cursor: pointer;
 }
 
-	.flipY {
-		transform: scaleY(-1)
-	}
+.flipY {
+	transform: scaleY(-1);
+}
 </style>

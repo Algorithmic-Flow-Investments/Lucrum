@@ -1,15 +1,11 @@
 <template>
-	<div class="mdc-theme--background">
-	</div>
-
+	<div class="mdc-theme--background"></div>
 </template>
 
 <script>
-  export default {
-	name: 'Scheduled'
-  }
+export default {
+	name: "Scheduled"
+};
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

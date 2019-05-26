@@ -1,25 +1,23 @@
 <template>
-<div class="sidebar mdc-theme--background">
-	<mdc-icon style="width: 72px; padding-bottom: 20px">
-		<logo/>
-	</mdc-icon>
+	<div class="sidebar mdc-theme--background">
+		<mdc-icon style="width: 72px; padding-bottom: 20px">
+			<logo />
+		</mdc-icon>
 
+		<rail-button link="overview" />
 
-	<rail-button link="overview"/>
+		<rail-button link="accounts" />
 
-	<rail-button link="accounts"/>
+		<rail-button link="budget" />
 
-	<rail-button link="budget"/>
+		<rail-button link="transactions" />
 
-	<rail-button link="transactions"/>
-
-	<rail-button link="scheduled"/>
-
-</div>
+		<rail-button link="scheduled" />
+	</div>
 </template>
 
 <script>
-import RailButton from "@/components/RailButton";
+import RailButton from "@/components/navigation/RailButton";
 import logo from "@/assets/logo.svg";
 
 export default {

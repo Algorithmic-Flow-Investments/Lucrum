@@ -5,6 +5,6 @@ $mdc-theme-background: #32333d;
 @import "vue-mdc-adapter/dist/styles";
 
 :root {
-  --mdc-layout-grid-margin-desktop: 48px;
-  --mdc-layout-grid-gutter-desktop: 48px
+	--mdc-layout-grid-margin-desktop: 48px;
+	--mdc-layout-grid-gutter-desktop: 48px;
 }

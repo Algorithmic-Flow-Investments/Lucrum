@@ -1,7 +1,14 @@
 <template>
-<div>
-	<list-segment v-for="account in accounts" :key="accounts.indexOf(account)" :colour="colours[accounts.indexOf(account)]" :title="account.name" :subtitle="account.description" :amount="account.balance"/>
-</div>
+	<div>
+		<list-segment
+			v-for="account in accounts"
+			:key="accounts.indexOf(account)"
+			:colour="colours[accounts.indexOf(account)]"
+			:title="account.name"
+			:subtitle="account.description"
+			:amount="account.balance"
+		/>
+	</div>
 </template>
 
 <script>
@@ -9,7 +16,7 @@ import ListSegment from "@/components/ListSegment";
 import { EventBus } from "../event-bus.js";
 import axios from "axios";
 
-function numberWithCommas (x) {
+function numberWithCommas(x) {
 	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
@@ -35,7 +42,7 @@ export default {
 			axios.get(window.APIROOT + "api/accounts").then(response => {
 				this.accounts = response.data;
 				this.total = this.accounts.reduce(function(total, cur) {
-				  console.log(total, cur)
+					console.log(total, cur);
 					return total + cur.balance;
 				}, 0);
 				var parent = {
@@ -43,10 +50,7 @@ export default {
 					subtitle: "£" + numberWithCommas(this.total),
 					chart: this.accounts.map(
 						function(cur, index) {
-							return [
-								(cur.balance / this.total) * 100,
-								this.colours[index]
-							];
+							return [(cur.balance / this.total) * 100, this.colours[index]];
 						}.bind(this)
 					)
 				};
@@ -67,5 +71,4 @@ export default {
 };
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
