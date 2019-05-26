@@ -1,5 +1,6 @@
 from database import db
-from transaction import Transaction
+from models import Transaction, Target
+
 
 class Account(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +20,10 @@ class Account(db.Model):
 		self.description = description
 		self.balance = 0
 
+		target = Target(self.name, self)
+		db.session.add(target)
+		db.session.commit()
+
 	def __repr__(self):
 		return '<Account "' + self.name + '">'
 
@@ -26,13 +31,15 @@ class Account(db.Model):
 		return {'name': self.name, 'balance': self.balance, 'id': self.id, 'description': self.description}
 
 	def update(self, data):
-		print(self.name, data)
 		self.balance = data['balance']
 		for transaction in data['transactions']:
 			if Transaction.query.filter_by(raw_info=transaction['info'], account_id=self.id).first() is None:
 				t = Transaction(self, transaction['amount'], transaction['date'], info=transaction['info'])
-				print("Added {}".format(t))
+				#print("Added {}".format(t))
 				db.session.add(t)
 			else:
-				print("Skipped <<{}>>".format(transaction['info']))
+				pass
+				#print("Skipped <<{}>>".format(transaction['info']))
+		for transaction in self.transactions:
+			transaction.process_internal()
 		db.session.commit()

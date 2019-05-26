@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request
 from database import db
-from account import Account
-from scheduled import ScheduledTransaction
-from transaction import Transaction, Target, TargetString, Method, MethodString
+from models.account import Account
+from models.scheduled import ScheduledTransaction
+from models.transaction import Transaction, Target, TargetString, Method, MethodString
 from dateutil.parser import parse
-
+from api import transactions
 
 api = Blueprint('api', __name__)
 
@@ -21,19 +21,32 @@ def scheduled_basic():
 	return jsonify([transaction.data_basic() for transaction in scheduled])
 
 
-@api.route('/api/transactions')
-def transactions_basic():
+@api.route('/api/transactions/list')
+def transactions_list():
 	minDate = parse(request.args.get('min', '1970-01-01'))
 	maxDate = parse(request.args.get('max', '2100-01-01'))
-	transactions = Transaction.query.filter(Transaction.date >= minDate, Transaction.date <= maxDate).order_by(Transaction.date.desc()).all()
-	return jsonify([transaction.data_basic() for transaction in transactions])
+	return jsonify(transactions.show_list(minDate, maxDate))
+
+
+@api.route('/api/transactions/stats')
+def transactions_stats():
+	minDate = parse(request.args.get('min', '1970-01-01'))
+	maxDate = parse(request.args.get('max', '2100-01-01'))
+	return jsonify(transactions.stats(minDate, maxDate))
+
+
+@api.route('/api/transactions/graph')
+def transaction_graph():
+	minDate = parse(request.args.get('min', '1970-01-01'))
+	maxDate = parse(request.args.get('max', '2100-01-01'))
+	return jsonify(transactions.graph(minDate, maxDate))
 
 
 @api.route('/api/transaction/<id>', methods=['GET', 'POST'])
 def transaction_advanced(id):
 	if request.method == 'GET':
 		transaction = Transaction.query.filter_by(id=id).first()
-		return jsonify(transaction.data_advanced())
+		return jsonify(transaction.data())
 	elif request.method == 'POST':
 		data = request.json
 		transaction = Transaction.query.filter_by(id=id).first()
@@ -45,13 +58,18 @@ def transaction_advanced(id):
 
 			if key == 'method':
 				transaction.method_id = value
+
+			if key == 'parent':
+				transaction.parent_transaction_id = value
 		db.session.commit()
-		return ""
+		return jsonify(transaction.data())
+
 
 @api.route('/api/targets')
 def targets_basic():
 	targets = Target.query.all()
 	return jsonify([target.data_basic() for target in targets])
+
 
 @api.route('/api/methods')
 def methods_basic():
@@ -68,7 +86,6 @@ def target_advanced(id):
 		return jsonify(target.data_advanced())
 	elif request.method == 'POST':
 		data = request.json
-		print(data)
 		target = Target.query.filter_by(id=id).first()
 		if target is None:
 			target = Target('')
@@ -83,13 +100,15 @@ def target_advanced(id):
 				db.session.add(target_string)
 			else:
 				target_string.string = string['string']
-		print(target)
+		for transaction in Transaction.query.all():
+			transaction.process()
 		db.session.commit()
 		return jsonify({'id': target.id})
 	elif request.method == 'DELETE':
 		target = Target.query.filter_by(id=id).delete()
 		db.session.commit()
 		return ""
+
 
 @api.route('/api/method/<id>', methods=['GET', 'POST', 'DELETE'])
 def method_advanced(id):

@@ -2,6 +2,7 @@ import banking
 from datetime import datetime, timedelta
 import os
 from qifparse.parser import QifParser
+import secretConfig
 
 
 def get_data():
@@ -15,4 +16,4 @@ if __name__ == "__main__":
 	#get_data()
 	#for file in os.listdir('tmp'):
 	#	qif = QifParser.parse(file('tmp/' + file))
-	banking.decodeQif()
+	banking.decode_qif()

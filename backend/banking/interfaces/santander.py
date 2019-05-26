@@ -15,7 +15,7 @@ import os
 from ..common import BankAccount
 
 class SantanderUser():
-	def __init__(self, userID, password, secNum, accounts={}):
+	def __init__(self, userID, password, secNum, questions={}, accounts={}):
 		"""
 
 		:param userID:
@@ -26,6 +26,7 @@ class SantanderUser():
 		self.userID = userID
 		self.password = password
 		self.secNum = secNum
+		self.questions = questions
 		options = webdriver.ChromeOptions()
 		#options.add_argument('headless')
 		download_dir = os.path.abspath("tmp")
@@ -53,7 +54,8 @@ class SantanderUser():
 		try:
 			challenge = driver.find_element_by_css_selector('[id="cbQuestionChallenge.responseUser"]')
 			question = driver.find_element_by_css_selector('form .form-item .data').text.strip()
-			answer = input("Verifying new computer:\n\t{}? ".format(question))
+			print("QUESTION:", question)
+			answer = self.questions[question]
 			challenge.send_keys(answer)
 			challenge.send_keys(Keys.RETURN)
 		except NoSuchElementException as e:

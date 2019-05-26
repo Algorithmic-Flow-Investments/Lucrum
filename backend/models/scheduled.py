@@ -1,5 +1,6 @@
 from database import db
-from transaction import Target, Tag
+from models.target import Target
+from models.tag import Tag
 
 
 class ScheduledTransaction(db.Model):
@@ -41,3 +42,9 @@ class ScheduledTransaction(db.Model):
 
 	def data_basic(self):
 		return {'name': self.name, 'amount': self.amount, 'id': self.id, 'date': self.date, 'internal': self.target.internal_account is not None}
+
+scheduled_tags = db.Table('scheduled_tags',
+							db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
+							db.Column('scheduled_transaction_id', db.Integer, db.ForeignKey('scheduled_transaction.id'),
+								primary_key=True)
+							)
