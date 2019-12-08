@@ -1,42 +1,44 @@
-import urllib.parse
+import logging
+import os
+import time
 from datetime import timedelta
+from typing import Dict, Tuple
+
+from selenium.webdriver.remote.remote_connection import LOGGER
+LOGGER.setLevel(logging.ERROR)
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-import requests
-import qifparse
+from selenium.webdriver.support.ui import Select, WebDriverWait
 
-import os
+from ..common import BankAccount, BankUser, BankInterface
 
-from ..common import BankAccount
 
-class SantanderUser():
-	def __init__(self, userID, password, secNum, questions={}, accounts={}):
+class SantanderUser(BankUser):
+	def __init__(self,
+					user_id: str,
+					password: str,
+					sec_num: str,
+					questions: Dict[str, str] = {},
+					accounts: Dict[str, Tuple] = {}):
 		"""
-
-		:param userID:
+		:param user_id:
 		:param password:
-		:param secNum:
+		:param sec_num:
 		:param accounts: A dict of identifier:name
 		"""
-		self.userID = userID
+		super().__init__()
+		self.userID = user_id
 		self.password = password
-		self.secNum = secNum
+		self.secNum = sec_num
 		self.questions = questions
-		options = webdriver.ChromeOptions()
-		#options.add_argument('headless')
-		download_dir = os.path.abspath("tmp")
-		preferences = {"download.default_directory": download_dir,
-		               "directory_upgrade": True}
-		options.add_experimental_option("prefs", preferences)
-		self.driver = webdriver.Chrome(chrome_options=options)
+
 		self.accounts = []
 		for name, identifier in accounts.items():
-			self.accounts.append(SantanderAccount(name, identifier, self))
+			self.accounts.append(BankAccount(name, identifier, self, SantanderAccount))
 
 	def screenshot(self):
 		self.driver.get_screenshot_as_file('screenshot.png')
@@ -44,9 +46,11 @@ class SantanderUser():
 	def login(self):
 		driver = self.driver
 
-		driver.get('https://retail.santander.co.uk/LOGSUK_NS_ENS/BtoChannelDriver.ssobto?dse_operationName=LOGON&dse_processorState=initial&redirect=S')
+		driver.get(
+			'https://retail.santander.co.uk/LOGSUK_NS_ENS/BtoChannelDriver.ssobto?dse_operationName=LOGON&dse_processorState=initial&redirect=S'
+		)
 
-		driver.implicitly_wait(3)
+		driver.implicitly_wait(1)
 		elem = driver.find_element_by_id('infoLDAP_E.customerID')
 		elem.send_keys(self.userID)
 		elem.send_keys(Keys.RETURN)
@@ -54,19 +58,23 @@ class SantanderUser():
 		try:
 			challenge = driver.find_element_by_css_selector('[id="cbQuestionChallenge.responseUser"]')
 			question = driver.find_element_by_css_selector('form .form-item .data').text.strip()
-			print("QUESTION:", question)
-			answer = self.questions[question]
+			try:
+				answer = self.questions[question]
+			except KeyError as e:
+				print("Invalid question:", question)
+				print("Stored questions:", self.questions)
+				raise e
 			challenge.send_keys(answer)
 			challenge.send_keys(Keys.RETURN)
 		except NoSuchElementException as e:
-			print("Verification not needed?")
-
-		try:
+			pass
+		# print("Verification not needed?")
+		"""try:
 			phrase = driver.find_element_by_css_selector('.imgSection span')
-			print(phrase.text.strip())
+			#print(phrase.text.strip())
 		except NoSuchElementException:
-			print("No magic phrase")
-
+			pass
+			#print("No magic phrase")"""
 
 		# login
 		for i in range(1, len(self.password) + 1):
@@ -93,24 +101,22 @@ class SantanderUser():
 			driver.find_element_by_class_name('submit').click()
 		except NoSuchElementException:
 			pass
+
+		driver.implicitly_wait(3)
+
 	def go_home(self):
 		self.driver.get('https://retail.santander.co.uk/EBAN_Accounts_ENS/channel.ssobto?dse_operationName=MyAccounts')
 
-class SantanderAccount(BankAccount):
+
+class SantanderAccount(BankInterface):
 	def __init__(self, name, identifier, user):
 		super().__init__(name, identifier, user)
 
 	def goto_page(self):
 		self.user.go_home()
 		driver = self.driver
-		accounts = (driver
-		            .find_element_by_css_selector('.accountlist')
-		            .find_elements_by_css_selector('li .info')
-		            )
-		account_map = {
-			tuple(acc.find_element_by_css_selector('.number').text.split(' ')): acc
-			for acc in accounts
-		}
+		accounts = (driver.find_element_by_css_selector('.accountlist').find_elements_by_css_selector('li .info'))
+		account_map = {tuple(acc.find_element_by_css_selector('.number').text.split(' ')): acc for acc in accounts}
 
 		# choose our account
 		acc = account_map[self.identifier]
@@ -119,14 +125,8 @@ class SantanderAccount(BankAccount):
 	def get_balance(self):
 		self.user.go_home()
 		driver = self.driver
-		accounts = (driver
-		            .find_element_by_css_selector('.accountlist')
-		            .find_elements_by_css_selector('li .info')
-		            )
-		account_map = {
-			tuple(acc.find_element_by_css_selector('.number').text.split(' ')): acc
-			for acc in accounts
-		}
+		accounts = (driver.find_element_by_css_selector('.accountlist').find_elements_by_css_selector('li .info'))
+		account_map = {tuple(acc.find_element_by_css_selector('.number').text.split(' ')): acc for acc in accounts}
 
 		# choose our account
 		acc = account_map[self.identifier]
@@ -137,20 +137,19 @@ class SantanderAccount(BankAccount):
 
 		return float(amount.replace('£', '').replace(',', ''))
 
-	def get_transactions(self, from_date, to_date):
-		self.goto_page()
+	def get_transactions(self, from_date, to_date, navigate=True):
 		driver = self.driver
 
 		# upper bound is inclusive for santander
 		to_date_incl = to_date - timedelta(days=1)
 
-		download_link = WebDriverWait(driver, 10).until(
-	        EC.presence_of_element_located((By.CSS_SELECTOR, ".download"))
-	    )
-		download_link.click()
+		if navigate:
+			self.goto_page()
+			download_link = WebDriverWait(driver,
+											10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.download')))
+			download_link.click()
 
-		Select(driver.find_element_by_css_selector('#sel_downloadto')).select_by_visible_text('Intuit Quicken (QIF)')
-
+		Select(driver.find_element_by_css_selector('#sel_downloadto')).select_by_visible_text('Text file (TXT)')
 
 		from_day = driver.find_element_by_css_selector('[name="downloadStatementsForm.fromDate.day"]')
 		from_month = driver.find_element_by_css_selector('[name="downloadStatementsForm.fromDate.month"]')
@@ -162,7 +161,6 @@ class SantanderAccount(BankAccount):
 		from_month.send_keys(str(from_date.month))
 		from_year.clear()
 		from_year.send_keys(str(from_date.year))
-
 
 		to_day = driver.find_element_by_css_selector('[name="downloadStatementsForm.toDate.day"]')
 		to_month = driver.find_element_by_css_selector('[name="downloadStatementsForm.toDate.month"]')
@@ -182,4 +180,17 @@ class SantanderAccount(BankAccount):
 
 		driver.find_element_by_css_selector('[name="downloadStatementsForm.events.0"]').click()
 
-		return super().get_transactions()
+		while len(os.listdir('tmp')) == 0 or os.listdir('tmp')[0][-3:] != 'txt':
+			print('waiting...')
+			time.sleep(0.1)
+			if len(self.driver.find_elements_by_link_text('Back to My accounts')) > 0:
+				print('Error screen, skipping...')
+				return ''
+		file_name = 'tmp/' + os.listdir('tmp')[0]
+		print('file', file_name)
+
+		with open(file_name, 'r', encoding='ISO-8859-1') as f:
+			contents = f.read()
+
+		os.remove(file_name)
+		return contents

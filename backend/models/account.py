@@ -1,5 +1,10 @@
+from datetime import datetime
+
+from sqlalchemy import func
+
 from database import db
-from models import Transaction, Target
+from models.transaction import Transaction
+from models.target import Target
 
 
 class Account(db.Model):
@@ -14,32 +19,72 @@ class Account(db.Model):
 	bankLink_id = db.Column(db.Integer, db.ForeignKey('bank_link.id'), nullable=True)
 	bankLink = db.relationship('BankLink', backref=db.backref('accounts', lazy=True), foreign_keys=[bankLink_id])
 
-	def __init__(self, name, identifier=None, description=None):
+	target = db.relationship("Target", uselist=False)
+
+	def __init__(self, name, identifier=None, description=None, balance=0):
 		self.name = name
 		self.identifier = identifier
 		self.description = description
-		self.balance = 0
+		self.balance = balance
 
 		target = Target(self.name, self)
+		self.target = target
 		db.session.add(target)
-		db.session.commit()
 
 	def __repr__(self):
 		return '<Account "' + self.name + '">'
 
 	def data_basic(self):
-		return {'name': self.name, 'balance': self.balance, 'id': self.id, 'description': self.description}
+		return {'name': self.name, 'amount': self.balance, 'id': self.id, 'description': self.description}
 
 	def update(self, data):
+		# print(f"== Updating {self} ==")
 		self.balance = data['balance']
 		for transaction in data['transactions']:
-			if Transaction.query.filter_by(raw_info=transaction['info'], account_id=self.id).first() is None:
+			transaction['info'] = transaction['info'].replace('&amp;', '&')
+			if Transaction.query.filter(Transaction.info == transaction['info'], Transaction.account_id == self.id,
+										Transaction.amount == transaction['amount'],
+										Transaction.date == transaction['date']).first() is None:
 				t = Transaction(self, transaction['amount'], transaction['date'], info=transaction['info'])
-				#print("Added {}".format(t))
+				# print("Added {}".format(t))
 				db.session.add(t)
 			else:
 				pass
-				#print("Skipped <<{}>>".format(transaction['info']))
 		for transaction in self.transactions:
 			transaction.process_internal()
 		db.session.commit()
+
+	def calculated_total(self, date=datetime.today()):
+		if self.bankLink is not None:
+			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
+				Transaction.account_id == self.id, Transaction.date >= date).scalar()
+			if total is None:
+				total = 0
+			return round(self.balance - total, 3)
+		else:
+			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
+				Transaction.target_id == self.target.id, Transaction.date <= date).scalar()
+			if total is None:
+				total = 0
+			else:
+				total *= -1
+			return round(total, 3)
+
+	@property
+	def start(self):
+		first = Transaction.query.filter(Transaction.account_id == self.id).order_by(Transaction.date.asc()).first()
+		if first is None:
+			first = Transaction.query.filter(Transaction.target_id == self.target.id).order_by(
+				Transaction.date.asc()).first()
+		if first is None:
+			return datetime.today()
+		return first.date
+
+	@property
+	def end(self):
+		first = Transaction.query.filter(Transaction.account_id == self.id).order_by(Transaction.date.desc()).first()
+		if first is None:
+			first = Transaction.query.filter(Transaction.target_id == self.target.id).order_by(
+				Transaction.date.desc()).first()
+
+		return first.date

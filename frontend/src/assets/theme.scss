@@ -1,0 +1,73 @@
+// Import Bulma's core
+@import "../../node_modules/bulma/sass/utilities/all";
+@import "colours.scss";
+
+// Set your colors
+$primary-invert: findColorInvert($primary);
+$secondary-invert: findColorInvert($secondary);
+
+$twitter: #4099ff;
+$twitter-invert: findColorInvert($twitter);
+
+// Setup $colors to use as bulma classes (e.g. 'is-twitter')
+$colors: (
+	"white": (
+		$white,
+		$black
+	),
+	"black": (
+		$black,
+		$white
+	),
+	"light": (
+		$light,
+		$light-invert
+	),
+	"dark": (
+		$dark,
+		$dark-invert
+	),
+	"primary": (
+		$primary,
+		$primary-invert
+	),
+	"info": (
+		$info,
+		$info-invert
+	),
+	"success": (
+		$success,
+		$success-invert
+	),
+	"warning": (
+		$warning,
+		$warning-invert
+	),
+	"danger": (
+		$danger,
+		$danger-invert
+	),
+	"twitter": (
+		$twitter,
+		$twitter-invert
+	)
+);
+
+// Links
+$link: $primary;
+$link-invert: $primary-invert;
+$link-focus-border: $primary;
+
+//tabs
+$tabs-link-active-color: $text-strong;
+$tabs-link-active-border-bottom-color: $text-strong;
+$tabs-border-bottom-color: $text;
+$tabs-link-hover-border-bottom-color: $primary;
+$tabs-link-hover-color: $primary;
+
+//modals
+$modal-card-body-background-color: $foreground;
+
+// Import Bulma and Buefy styles
+@import "../../node_modules/bulma";
+@import "../../node_modules/buefy/src/scss/buefy";

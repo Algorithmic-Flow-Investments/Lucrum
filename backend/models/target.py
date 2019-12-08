@@ -6,22 +6,21 @@ class Target(db.Model):
 	name = db.Column(db.String(80), nullable=False)
 
 	internal_account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=True)
-	internal_account = db.relationship('Account', backref=db.backref('internal_transactions', lazy=True),
-										foreign_keys=[internal_account_id])
+	internal_account = db.relationship('Account', foreign_keys=[internal_account_id])
 
-	substrings = db.relationship("TargetString", backref="parent", lazy='dynamic', passive_deletes=True)
+	substrings = db.relationship('TargetString', backref='parent', lazy='dynamic', passive_deletes=True)
 
 	tags = db.relationship('Tag', secondary='target_tags')
 
 	def __init__(self, name, internal_account=None):
 		self.name = name
-		if internal_account:
-			self.internal_account = internal_account
+		"""if internal_account:
+			self.internal_account_id = internal_account.id
 		else:
 			from models.account import Account
 			acc = Account.query.filter_by(name=self.name).first()
 			if acc is not None:
-				self.internal_account = acc
+				self.internal_account = acc"""
 
 	def __repr__(self):
 		if self.internal_account is not None:
@@ -29,11 +28,22 @@ class Target(db.Model):
 		return '<Target "' + self.name + '">'
 
 	def data_basic(self):
-		return {'name': self.name, 'id': self.id, 'internal': self.internal_account is not None, 'exists': True}
+		return {
+			'name': self.name,
+			'id': self.id,
+			'internal': self.internal_account is not None,
+			'tags': [tag.data_basic() for tag in self.tags],
+			'usages': len(self.transactions)
+		}
 
 	def data_advanced(self):
-		return {'name': self.name, 'id': self.id, 'internal': self.internal_account is not None, 'exists': True,
-		        'strings': [string.data() for string in self.substrings]}
+		return {
+			'name': self.name,
+			'id': self.id,
+			'internal': self.internal_account is not None,
+			'strings': [string.data() for string in self.substrings],
+			'usages': len(self.transactions)
+		}
 
 
 class TargetString(db.Model):
@@ -48,4 +58,3 @@ class TargetString(db.Model):
 
 	def data(self):
 		return {'string': self.string, 'id': self.id}
-

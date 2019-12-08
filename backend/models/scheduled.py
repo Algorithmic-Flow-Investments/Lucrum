@@ -1,6 +1,6 @@
 from database import db
-from models.target import Target
 from models.tag import Tag
+from models.target import Target
 
 
 class ScheduledTransaction(db.Model):
@@ -13,12 +13,27 @@ class ScheduledTransaction(db.Model):
 	weekly = db.Column(db.Boolean, nullable=False)
 	endDate = db.Column(db.DateTime, nullable=True)
 
-	tags = db.relationship('Tag', secondary='scheduled_tags', lazy='subquery', backref=db.backref('scheduled', lazy=True))
+	tags = db.relationship('Tag',
+	                       secondary='scheduled_tags',
+	                       lazy='subquery',
+	                       backref=db.backref('scheduled', lazy=True))
 
-	target_id = db.Column(db.Integer, db.ForeignKey('target.id'), nullable=True)
-	target = db.relationship('Target', backref=db.backref('scheduled', lazy=True), foreign_keys=[target_id])
+	target_id = db.Column(db.Integer,
+	                      db.ForeignKey('target.id'),
+	                      nullable=True)
+	target = db.relationship('Target',
+	                         backref=db.backref('scheduled', lazy=True),
+	                         foreign_keys=[target_id])
 
-	def __init__(self, name, amount, date, tags=[], target=None, monthly=False, weekly=False, end_date=None):
+	def __init__(self,
+	             name,
+	             amount,
+	             date,
+	             tags=[],
+	             target=None,
+	             monthly=False,
+	             weekly=False,
+	             end_date=None):
 		self.name = name
 		self.amount = amount
 		self.date = date
@@ -38,13 +53,23 @@ class ScheduledTransaction(db.Model):
 
 		if target != None:
 			self.target = target
-			#target.scheduled.append(self)
+
+	# target.scheduled.append(self)
 
 	def data_basic(self):
-		return {'name': self.name, 'amount': self.amount, 'id': self.id, 'date': self.date, 'internal': self.target.internal_account is not None}
+		return {
+		    'name': self.name,
+		    'amount': self.amount,
+		    'id': self.id,
+		    'date': self.date,
+		    'internal': self.target.internal_account is not None
+		}
 
-scheduled_tags = db.Table('scheduled_tags',
-							db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
-							db.Column('scheduled_transaction_id', db.Integer, db.ForeignKey('scheduled_transaction.id'),
-								primary_key=True)
-							)
+
+scheduled_tags = db.Table(
+    'scheduled_tags',
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
+    db.Column('scheduled_transaction_id',
+              db.Integer,
+              db.ForeignKey('scheduled_transaction.id'),
+              primary_key=True))

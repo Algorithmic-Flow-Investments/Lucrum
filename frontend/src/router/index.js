@@ -1,10 +1,9 @@
 import Vue from "vue";
 import Router from "vue-router";
-import Overview from "@/views/Overview";
-import AccountsPage from "@/views/AccountsPage";
-import TransactionsPage from "@/views/TransactionsPage";
-import Budget from "@/views/Budget";
-import Scheduled from "@/views/Scheduled";
+import Dashboard from "@/pages/Dashboard";
+import Transactions from "@/pages/Transactions";
+import Classification from "@/pages/Classification";
+import Accounts from "@/pages/Accounts";
 
 Vue.use(Router);
 
@@ -13,28 +12,23 @@ export default new Router({
 	routes: [
 		{
 			path: "/",
-			name: "Overview",
-			component: Overview
+			name: "Dashboard",
+			component: Dashboard
+		},
+		{
+			path: "/transactions",
+			name: "Transactions",
+			component: Transactions
+		},
+		{
+			path: "/classification",
+			name: "Classification",
+			component: Classification
 		},
 		{
 			path: "/accounts",
 			name: "Accounts",
-			component: AccountsPage
-		},
-		{
-			path: "/transactions/:transactionId?/:edit?",
-			name: "Transactions",
-			component: TransactionsPage
-		},
-		{
-			path: "/budget",
-			name: "Budget",
-			component: Budget
-		},
-		{
-			path: "/scheduled",
-			name: "Scheduled",
-			component: Scheduled
+			component: Accounts
 		}
 	]
 });

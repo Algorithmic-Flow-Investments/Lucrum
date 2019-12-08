@@ -1,12 +1,13 @@
 import os
+import pickle
+import time
+from typing import Dict, Tuple
 
-from database import db
-import banking
 from simplecrypt import encrypt, decrypt
 from werkzeug.security import check_password_hash, generate_password_hash
-import datetime
-import time
-import pickle
+
+import banking
+from database import db
 
 
 class BankLink(db.Model):
@@ -32,34 +33,44 @@ class BankLink(db.Model):
 	def connect(self, dbpassword):
 		if not self.check_password(dbpassword):
 			return 0
-		userID = decrypt(dbpassword, self.userID).decode('utf8')
-		password = decrypt(dbpassword, self.password).decode('utf8')
-		sec_num = decrypt(dbpassword, self.sec_num).decode('utf8')
-		questions = pickle.loads(decrypt(dbpassword, self.questions))
-		print(questions)
+		user_id: str = decrypt(dbpassword, self.userID).decode('utf8')
+		password: str = decrypt(dbpassword, self.password).decode('utf8')
+		sec_num: str = decrypt(dbpassword, self.sec_num).decode('utf8')
+		questions: Dict[str, str] = pickle.loads(decrypt(dbpassword, self.questions))
+		questions = {k.strip("?"): v for k, v in questions.items()}
+		self.questions = encrypt(dbpassword, pickle.dumps(questions))
+		db.session.commit()
 
-		accounts = {account.name:tuple(account.identifier.split('|')) for account in self.accounts}
+		accounts: Dict[str, Tuple] = {account.name: tuple(account.identifier.split('|')) for account in self.accounts}
 
-		user = banking.SantanderUser(userID, password, sec_num, questions, accounts)
+		user = banking.SantanderUser(user_id, password, sec_num, questions, accounts)
 		user.login()
 
 		return user
 
-	def retrieve_data(self, dbpassword, from_date, to_date):
-		if os.path.exists('cached.dat'):
+	def retrieve_data(self, dbpassword, from_date, to_date, force=False):
+		if os.path.exists('cached.dat') and not force:
 			with open('cached.dat', 'rb') as f:
 				data = pickle.load(f)
 		else:
 			user = self.connect(dbpassword)
 			data = {}
 			for account in user.accounts:
-				print(account.name)
-				data[account.name] = {'balance': account.get_balance(), 'transactions': account.get_transactions(from_date, to_date)}
-				time.sleep(5)
+				data[account.name] = {
+					'balance': account.get_balance(),
+					'transactions': account.get_transactions(from_date, to_date)
+				}
+				time.sleep(2)
 
-			print(data)
+			if os.path.exists('cached.dat'):
+				with open('cached.dat', 'rb') as f:
+					old_data = pickle.load(f)
+				for k, v in data.items():
+					old_data[k]['balance'] = data[k]['balance']
+					old_data[k]['transactions'] = data[k]['transactions'].copy().extend(old_data[k]['transactions'])
 			with open('cached.dat', 'wb') as f:
 				pickle.dump(data, f)
+		print(data)
 
 		for account in self.accounts:
 			account.update(data[account.name])
