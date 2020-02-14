@@ -17,10 +17,10 @@
 </template>
 
 <script>
-	import moment from "moment";
+	import moment from "moment/moment";
 	import LaXMarker from "@/components/charts/la-x-marker";
 	export default {
-		name: "AltChart",
+		name: "OutgoingsChart",
 		components: { LaXMarker },
 		props: ["graph", "top", "height"],
 		computed: {

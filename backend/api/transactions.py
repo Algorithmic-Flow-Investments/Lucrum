@@ -10,10 +10,10 @@ from models.transaction import Transaction, Target
 def filter_budget(query, budget_id: int = 1):
 	return query.filter(
 		or_(Transaction.target == None, Transaction.target.has(Target.internal_account == None))) \
-               .join(Transaction.tags, isouter=True)\
-               .join(Tag.category, isouter=True)\
-               .join(Category.budgets, isouter=True)\
-               .filter(Budget.id == budget_id)
+                  .join(Transaction.tags, isouter=True)\
+                  .join(Tag.category, isouter=True)\
+                  .join(Category.budgets, isouter=True)\
+                  .filter(Budget.id == budget_id)
 
 
 def tbr(budget_id: int = 1):

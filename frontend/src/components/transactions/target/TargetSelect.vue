@@ -5,9 +5,9 @@
 		</header>
 		<section class="modal-card-body">
 			<div v-if="transaction.target === null">
-				<multiselect v-model="selectedTarget" :options="targets" label="name" placeholder="Select target">
+				<multiselect v-model="selectedTarget" :options="l_targets" label="name" placeholder="Select target">
 					<template slot="option" slot-scope="props">
-						<i v-if="props.option.internal" class="fas fa-university"></i>
+						<i v-if="props.option.is_internal" class="fas fa-university"></i>
 						<span class="option__title">{{ props.option.name }}</span>
 					</template>
 				</multiselect>
@@ -15,35 +15,31 @@
 			</div>
 		</section>
 		<footer class="modal-card-foot">
-			<b-button type="button" @click="$parent.close()">Close</b-button>
-			<b-button type="is-primary" @click="$emit('select', selectedTarget)" :disabled="selectedTarget === null" :loading="saving">Save</b-button>
+			<b-button type="button" @click="$emit('close')">Close</b-button>
+			<b-button type="is-primary" @click="save()" :disabled="selectedTarget === null" :loading="saving">Save</b-button>
 		</footer>
 	</div>
 </template>
 
 <script>
 	import Multiselect from 'vue-multiselect'
-	import * as requests from "@/helpers/requests"
 
 	export default {
 		name: "TargetSelect",
 		components: { Multiselect },
-		props: ['transaction', 'saving'],
+		props: ['saving', 'transaction'],
 		data() {
 			return {
 				selectedTarget: null,
-				targets: []
 			}
 		},
 		methods: {
-			fetchTargets() {
-				requests.get('targets/list').then(data => {
-					this.targets = data
-				})
+			save() {
+				this.transaction.target_id = this.selectedTarget.id
+				this.transaction.manual_target = true
+				this.transaction.commit()
+				this.$emit('close')
 			}
-		},
-		created() {
-			this.fetchTargets()
 		}
 	};
 </script>

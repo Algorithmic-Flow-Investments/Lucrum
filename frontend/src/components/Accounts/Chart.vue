@@ -26,11 +26,12 @@ export default {
 	},
 	methods: {
 		account_balance(account, date) {
-			let dates = Object.keys(account.graph);
+			if (!account.balance_graph) return 0;
+			let dates = Object.keys(account.balance_graph);
 			let closest_date = dates.filter(d => {
 				return moment(d).isSameOrAfter(date);
 			})[0];
-			return account.graph[closest_date];
+			return account.balance_graph[closest_date];
 		}
 	},
 	computed: {

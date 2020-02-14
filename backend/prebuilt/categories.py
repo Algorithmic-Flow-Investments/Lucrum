@@ -5,4 +5,5 @@ CATEGORIES = [
 	'Entertainment',
 	'Household',
 	'Personal',
+	'Health',
 ]

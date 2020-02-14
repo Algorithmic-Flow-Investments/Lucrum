@@ -1,5 +1,5 @@
 <template>
-	<path :d="d" :fill="colour" stroke="none" fill-rule="evenodd" />
+	<path :d="d" :fill="colour" fill-rule="evenodd" :data-id="id" :stroke="(selected) ? 'gold' : ''" :stroke-width="(selected) ? 2 : 1"></path>
 </template>
 
 <script>
@@ -14,10 +14,10 @@ function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
 
 export default {
 	name: "CircleArc",
-	props: ["radius", "start_angle", "end_angle", "thickness", "colour"],
+	props: ["radius", "start_angle", "end_angle", "thickness", "colour", "id", "selected"],
 	computed: {
 		d() {
-			var opts = {
+			const opts = {
 				cx: 200,
 				cy: 200,
 				radius: this.radius,
@@ -26,45 +26,23 @@ export default {
 				thickness: this.thickness
 			};
 
-			var start = polarToCartesian(opts.cx, opts.cy, opts.radius, opts.end_angle);
-			var end = polarToCartesian(opts.cx, opts.cy, opts.radius, opts.start_angle);
-			var largeArcFlag = opts.end_angle - opts.start_angle <= 180 ? "0" : "1";
+			const start = polarToCartesian(opts.cx, opts.cy, opts.radius, opts.end_angle);
+			const end = polarToCartesian(opts.cx, opts.cy, opts.radius, opts.start_angle);
+			const largeArcFlag = opts.end_angle - opts.start_angle <= 180 ? "0" : "1";
 
-			var cutout_radius = opts.radius - opts.thickness,
+			const cutout_radius = opts.radius - opts.thickness,
 				start2 = polarToCartesian(opts.cx, opts.cy, cutout_radius, opts.end_angle),
 				end2 = polarToCartesian(opts.cx, opts.cy, cutout_radius, opts.start_angle),
 				d = [
-					"M",
-					start.x,
-					start.y,
-					"A",
-					opts.radius,
-					opts.radius,
-					0,
-					largeArcFlag,
-					0,
-					end.x,
-					end.y,
-					"L",
-					opts.cx,
-					opts.cy,
-					"Z",
+					"M", start.x, start.y,
+					"A", opts.radius, opts.radius, 0, largeArcFlag, 0, end.x, end.y,
+					"L", end2.x, end2.y,
 
-					"M",
-					start2.x,
-					start2.y,
-					"A",
-					cutout_radius,
-					cutout_radius,
-					0,
-					largeArcFlag,
-					0,
-					end2.x,
-					end2.y,
-					"L",
-					opts.cx,
-					opts.cy,
-					"Z"
+					"M", start.x, start.y,
+					"L", start2.x, start2.y,
+
+
+					"A", cutout_radius, cutout_radius, 0, largeArcFlag, 0, end2.x, end2.y
 				].join(" ");
 
 			return d;

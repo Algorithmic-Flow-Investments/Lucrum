@@ -1,6 +1,6 @@
 <template>
 	<div class="sect">
-		<target v-for="target in targets" :key="target.id" :target="target" :tags="tags" @delete="del(target)"/>
+		<target v-if="!target.is_internal" v-for="target in sorted_targets" :key="target.id" :target="target"  @delete="del(target)"/>
 	</div>
 </template>
 
@@ -11,31 +11,24 @@
 	export default {
 		name: "Targets",
 		components: { Target },
-		data () {
+		data() {
 			return {
-				targets: [],
-				tags: []
+				sorted_targets: []
 			}
 		},
 		methods: {
-			fetch() {
-				requests.get('targets/list').then(targets => {
-					this.targets = targets.filter(target => {
-						return !target.internal
-					}).sort((a, b) => a.tags.length - b.tags.length)
-				})
-				requests.get('tags/list').then(tags => {
-					this.tags = tags
-				})
-			},
 			del(target) {
-				requests.del(`target/${target.id}/delete`).then(() => {
-					this.targets.splice(this.targets.indexOf(target), 1)
+				requests.del(`targets/delete/${target.id}`).then(() => {
+					this.l_targets.splice(this.l_targets.indexOf(target), 1)
 				})
 			}
 		},
-		created() {
-			this.fetch()
+		watch: {
+			l_targets() {
+				this.sorted_targets = [...this.l_targets].sort((a, b) => {
+					return a.tag_ids.length - b.tag_ids.length || b.usages - a.usages
+				})
+			}
 		}
 	};
 </script>

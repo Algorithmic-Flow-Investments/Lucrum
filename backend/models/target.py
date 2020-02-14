@@ -31,19 +31,15 @@ class Target(db.Model):
 		return {
 			'name': self.name,
 			'id': self.id,
-			'internal': self.internal_account is not None,
-			'tags': [tag.data_basic() for tag in self.tags],
+			'is_internal': self.internal_account is not None,
+			'tag_ids': [tag.id for tag in self.tags],
 			'usages': len(self.transactions)
 		}
 
-	def data_advanced(self):
-		return {
-			'name': self.name,
-			'id': self.id,
-			'internal': self.internal_account is not None,
+	def data_extra(self):
+		return dict(self.data_basic(), **{
 			'strings': [string.data() for string in self.substrings],
-			'usages': len(self.transactions)
-		}
+		})
 
 
 class TargetString(db.Model):

@@ -1,6 +1,6 @@
 <template>
 	<div class="sect flex-container">
-			<div v-for="tag in tags" :key="tag.id">
+			<div v-for="tag in l_tags" :key="tag.id">
 				<div class="tag-item" @click="selectingCategory=tag">
 					<b-icon icon="tag" type="is-medium"></b-icon>
 					<div class="sub" v-if="tag.category">{{ tag.category.name}}</div>
@@ -13,7 +13,7 @@
 							<p class="modal-card-title">Select category for {{tag.name}}</p>
 						</header>
 						<section class="modal-card-body flex-container">
-							<div v-for="category in categories" :key="category.id" class="tag-item" :class="{selected: tag.category !== null && tag.category.id === category.id}" @click="submit(tag, category)">
+							<div v-for="category in l_categories" :key="category.id" class="tag-item" :class="{selected: tag.category !== null && tag.category.id === category.id}" @click="submit(tag, category)">
 								<b-icon icon="tag" type="is-medium"></b-icon>
 								<div>{{ category.name }}</div>
 							</div>
@@ -35,28 +35,15 @@
 		name: "Tags",
 		data () {
 			return {
-				tags: [],
-				categories: [],
 				selectingCategory: false,
 			}
 		},
 		methods: {
-			fetch() {
-				requests.get('tags/list').then(tags => {
-					this.tags = tags
-				})
-				requests.get('categories/list').then(categories => {
-					this.categories = categories
-				})
-			},
 			submit(tag, category) {
-				tag.category = category
+				tag.category_id = category.id
 				this.selectingCategory = false
-				requests.post(`tag/${tag.id}/edit`, tag)
+				tag.commit()
 			}
-		},
-		created() {
-			this.fetch()
 		}
 	};
 </script>

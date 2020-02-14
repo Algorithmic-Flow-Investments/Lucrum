@@ -34,6 +34,8 @@ class BankAccount:
 
 	def get_transactions(self, from_date, to_date):
 		statement = self.interface.get_transactions(from_date, to_date, navigate=True)
+		if statement is None:
+			return []
 		transactions = decode_statement(statement)
 		if len(transactions) < 600:
 			return transactions

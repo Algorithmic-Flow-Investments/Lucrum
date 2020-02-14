@@ -1,8 +1,8 @@
 <template>
 	<div class="wrapper">
 		<span class="one" :class="{selected: value}" @click="$emit('input', true)"><i :class="'fas fa-' + one"></i></span>
-		<span class="middle" @click="selectingBudget=!selectingBudget" v-if="budget">{{ budget.name }}</span>
-		<div class="budget" v-for="bud in budgets" v-if="selectingBudget && bud.id !== budget.id" :key="bud.id" @click="selectBudget(bud)">{{ bud.name }}</div>
+		<span class="middle" @click="selectingBudget=!selectingBudget" v-if="budget_id">{{ budget.name }}</span>
+		<div class="budget" v-for="bud in budgets" v-if="selectingBudget && bud.id !== budget.id" :key="bud.id" @click="selectBudget(bud.id)">{{ bud.name }}</div>
 		<span class="two" :class="{selected: !value}" @click="$emit('input', false)"><i :class="'fas fa-' + two"></i></span>
 	</div>
 </template>
@@ -15,7 +15,7 @@
 		props: ['value', 'one', 'two'],
 		data() {
 			return {
-				budget: JSON.parse(localStorage.selected_budget || null),
+				budget_id: this.$route.params.budget_id || null,
 				budgets: [],
 				selectingBudget: false
 			}
@@ -24,19 +24,25 @@
 			fetch() {
 				requests.get('budgets/list').then(budgets => {
 					this.budgets = budgets
-					if (this.budget == null){
-						this.selectBudget(this.budgets[0])
+					if (this.budget_id == null){
+						this.selectBudget(this.budgets[0].id)
 					}
 					else {
-						this.selectBudget(this.budgets.filter(b => b.id === this.budget.id)[0])
+						this.selectBudget(this.budgets.filter(b => b.id === this.budget.id)[0].id)
 					}
 				})
 			},
-			selectBudget(budget){
-				this.budget = budget
-				localStorage.selected_budget = JSON.stringify(budget)
+			selectBudget(budget_id){
+				this.budget_id = budget_id
 				this.selectingBudget = false;
-				this.$emit('budget', this.budget)
+				this.$emit('budget', this.budget_id)
+				this.$router.push({ query: Object.assign({}, this.$route.query, {budget_id: this.budget_id})})
+			}
+		},
+		computed: {
+			budget() {
+				if (!this.budget_id) return null;
+				return this.budgets.filter(budget => budget.id === this.budget_id)[0]
 			}
 		},
 		created() {

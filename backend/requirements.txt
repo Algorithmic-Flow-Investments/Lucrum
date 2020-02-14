@@ -6,10 +6,10 @@ selenium
 python-dateutil
 qifparse
 flask
-werkzeug==0.14.1
+werkzeug
 flask_cors
 flask_sqlalchemy
-simple-crypt
+git+https://github.com/julianogouveia/simple-crypt.git
 sqlalchemy
 regex
 yapf

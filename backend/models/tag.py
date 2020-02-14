@@ -19,12 +19,12 @@ class Tag(db.Model):
 		return {
 			'name': self.name,
 			'id': self.id,
-			'category': self.category.data_basic() if self.category is not None else None,
+			'category_id': self.category_id,
 			'uses': len(self.targets)  # TODO: get number of transactions
 		}
 
-	def data_advanced(self, transaction):
-		return {'name': self.name, 'id': self.id, 'category': self.category.data_basic() if self.category else None}
+	def data_extra(self):
+		return dict(self.data_basic(), **{})
 
 
 target_tags = db.Table('target_tags', db.Column('tag_id', db.Integer, db.ForeignKey(Tag.id)),

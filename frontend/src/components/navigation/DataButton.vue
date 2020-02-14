@@ -6,6 +6,7 @@
 		<div v-if="popup" class="popup">
 			<b-button type="is-danger" @click="rebuild">Rebuild and populate</b-button>
 			<b-button type="is-primary" @click="populate">Populate</b-button>
+			<b-button type="is-primary" @click="update">Update</b-button>
 		</div>
 	</div>
 </template>
@@ -37,6 +38,11 @@
 			},
 			populate() {
 				requests.post('meta/populate').then(data => {
+					location.reload();
+				})
+			},
+			update() {
+				requests.post('meta/update').then(data => {
 					location.reload();
 				})
 			}

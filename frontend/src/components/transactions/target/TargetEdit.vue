@@ -55,8 +55,8 @@
 			</div>
 		</section>
 		<footer class="modal-card-foot">
-			<b-button type="button" @click="$parent.close()">Cancel</b-button>
-			<b-button type="is-primary" @click="doneString(); $emit('save', target)" :loading="saving">Save</b-button>
+			<b-button type="button" @click="$emit('close')">Cancel</b-button>
+			<b-button type="is-primary" @click="save()" :loading="saving">Save</b-button>
 		</footer>
 	</div>
 </template>
@@ -65,30 +65,28 @@
 	import * as requests from "@/helpers/requests"
 	import BButton from "buefy/src/components/button/Button";
 	import TargetString from "@/components/transactions/target/TargetString";
+	import Target from "@/Models/Target";
 
 	export default {
 		name: "TargetEdit",
 		components: { TargetString, BButton },
-		props: ["transaction", "saving"],
+		props: ["transaction"],
 		data() {
-			let tgt = {
-				id: null,
-				name: '',
-				internal: false,
-				strings: []
-			}
-			if (this.transaction.target){
-				tgt = JSON.parse(JSON.stringify(this.transaction.target))
-			}
 			return {
-				target: tgt,
+				target: (this.transaction.target) ? this.transaction.target.clone() : new Target({
+					id: null,
+					name: '',
+					internal: false,
+					strings: []
+				}),
 				addingString: false,
-				newString: ""
+				newString: "",
+				saving: false
 			}
 		},
 		computed: {
 			predicted_words(){
-				let space_split = this.transaction.raw.split(' ')
+				let space_split = this.transaction.raw_info.split(' ')
 				let split = []
 				space_split.forEach(value => {
 					split.push(...value.split(',').filter(value => {return value !== ""}))
@@ -97,11 +95,6 @@
 			}
 		},
 		methods: {
-			fetchTarget(){
-				requests.get(`target/${this.target.id}`).then(data => {
-					this.target = data
-				})
-			},
 			nameAdd(sub) {
 				if ((this.target.name != "") & (this.target.name[-1] != " ")) {
 					this.target.name += " ";
@@ -133,19 +126,42 @@
 				})
 			},
 			unlink(){
-				this.$emit('unlink')
+				this.transaction.unlinkTarget()
+				this.transaction.commit().then(() => this.$emit('close'))
 			},
 			delTarget(){
 				this.$dialog.confirm({
 					message: `This target is associated with ${this.target.usages} transactions. Continue deleting?`,
-					onConfirm: () => this.$emit('delete_target')
+					onConfirm: () => this.target.delete()
+				})
+			},
+			save() {
+				// TODO: Warn about duplicate strings
+				this.saving = true;
+				this.doneString();
+				this.target.commit().then(() => {
+					requests.post('transactions/process', null, {params: {
+						min: this.transaction.date.startOf('month').format("YYYY-M-D"),
+						max: this.transaction.date.endOf('month').format("YYYY-M-D"),
+					}})
+					this.$emit('close')
+				}).catch(exception => {
+					this.saving = false
+					if (exception.response.status === 409){
+						this.$dialog.alert({
+							title: 'Error',
+							message: 'A target with this name already exists',
+							type: 'is-danger',
+							hasIcon: true,
+							icon: 'times-circle',
+							iconPack: 'fa'
+						})
+					}
 				})
 			}
 		},
 		created() {
-			if (this.transaction.id !== -1){
-				this.fetchTarget()
-			}
+			this.target.fetch();
 		}
 	};
 </script>

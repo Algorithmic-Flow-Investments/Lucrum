@@ -5,6 +5,7 @@ from sqlalchemy import func
 from database import db
 from models.transaction import Transaction
 from models.target import Target
+from utils import date_range
 
 
 class Account(db.Model):
@@ -36,6 +37,22 @@ class Account(db.Model):
 
 	def data_basic(self):
 		return {'name': self.name, 'amount': self.balance, 'id': self.id, 'description': self.description}
+
+	def data_extra(self):
+		return dict(
+			self.data_basic(),
+			**{
+				# 'balance_graph': self.balance_graph(),
+				'calculated_balance': self.calculated_total()
+			})
+
+	def balance_graph(self):
+		graph = {
+			date.strftime("%Y-%m-%d"): self.calculated_total(date)
+			for date in date_range(self.start, datetime.today(), 7)
+		}
+		graph[self.start.strftime("%Y-%m-%d")] = 0
+		return graph
 
 	def update(self, data):
 		# print(f"== Updating {self} ==")

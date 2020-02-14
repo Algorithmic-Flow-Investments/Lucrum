@@ -1,45 +1,39 @@
 <template>
 	<div ref="sect" class="sect">
-		<transition-group name="slide-in" :style="{ '--total': transactionsLength }">
-				<transaction
+		<transition-group name="slide-in" :style="{ '--total': transactions.length }">
+				<TransactionSegment
 						:active-transaction="activeTransaction"
-						:data="transaction"
+						:transaction="transaction"
 						:key="transaction.id"
-						:categories="categories"
 						@activate="activeTransaction = $event; $emit('scroll', $event)"
 						@deactivate="activeTransaction = null"
-						@update-target="updateTarget"
 						ref="transactions"
 						v-for="(transaction, i) in transactions"
 						:style="{'--i': i, '--reverse': (range.forward) ? 1 : -1}"
-				></transaction>
+				></TransactionSegment>
 		</transition-group>
 	</div>
 </template>
 
 <script>
 import * as requests from "@/helpers/requests";
-import Transaction from "@/components/transactions/Transaction";
+import TransactionSegment from "@/components/transactions/TransactionSegment";
+import Transaction from "@/Models/Transaction";
 export default {
 	name: "List",
-	components: { Transaction },
+	components: { TransactionSegment },
 	props: {
 		range: Object,
-		target_id: {
-			type: Number,
-			default: null
-		},
-		categories: {
-			type: Array,
-			default: () => {return []}
+		extra_params: {
+			type: Object,
+			default: () => {return {}}
 		}
 	},
 	data() {
 		return {
 			transactions: [],
-			transactionsLength: 0,
 			activeTransaction: null,
-			topTransaction: null,
+			topTransaction: null
 		};
 	},
 	/*watch: {
@@ -54,37 +48,44 @@ export default {
 		fetch() {
 			if (this.range.min === null || this.range.max === null) return;
 			this.transactions = []
+			let params = {
+				min: this.range.min.format("YYYY-M-D"),
+				max: this.range.max.format("YYYY-M-D"),
+			}
+			params = Object.assign(params, this.extra_params)
 			requests
 				.get("transactions/list", {
-					params: {
-						min: this.range.min.format("YYYY-M-D"),
-						max: this.range.max.format("YYYY-M-D"),
-						target_id: this.target_id
-					}
+					params: params
 				})
 				.then(transactions => {
-					this.transactions = transactions;
-					this.transactionsLength = this.transactions.length
+					this.transactions = transactions.map(t => new Transaction(t));
 					this.topTransaction = this.transactions[0]
+					this.joinTransactionsTargets()
+					this.joinTransactionsMethods()
+					this.joinTransactionsAccounts()
 					this.$emit('scroll', this.topTransaction)
 					this.$emit('loaded')
 				});
 		},
-		updateTarget(updated) {
-			if (this.target_id){
-				this.transactions = this.transactions.filter(transaction => {
-					return updated.indexOf(transaction.id) === -1;
-				})
+		joinTransactionsTargets(transactions) {
+			if (this.l_targets.length > 0 && transactions) {
+				transactions.forEach(transaction => transaction.target = transaction.getTarget())
 			}
-			this.$refs.transactions
-				.filter(comp => {
-					return updated.indexOf(comp.data.id) !== -1;
-				})
-				.forEach(comp => {
-					comp.fetch();
-				});
-
-			this.$emit('loaded')
+		},
+		joinTransactionsMethods() {
+			if (this.l_methods.length > 0 && this.transactions) {
+				this.transactions.forEach(transaction => transaction.method = transaction.getMethod())
+			}
+		},
+		joinTransactionsAccounts() {
+			if (this.l_accounts.length > 0 && this.transactions) {
+				this.transactions.forEach(transaction => transaction.account = transaction.getAccount())
+			}
+		},
+		joinTransactionsTags() {
+			if (this.l_tags.length > 0 && this.transactions) {
+				this.transactions.forEach(transaction => transaction.tags = transaction.getTags())
+			}
 		},
 		handleScroll() {
 			if (this.activeTransaction){
@@ -101,9 +102,24 @@ export default {
 				this.topTransaction = top.transaction
 				this.$emit('scroll', this.topTransaction)
 			}
+		},
+		onTransactionsUpdated(transaction_ids) {
+			let transactions = this.transactions.filter(transaction => transaction_ids.includes(transaction.id))
+			transactions.forEach(transaction => {
+				transaction.fetch()
+			})
+			this.joinTransactionsTargets(transactions)
+		},
+		onTargetsUpdated(target_ids) {
+			this.$store.dispatch('fetch_targets').then(() => this.joinTransactionsTargets(this.transactions))
 		}
 	},
 	created() {
+		this.$store.dispatch('fetch_targets').then(() => this.joinTransactionsTargets(this.transactions))
+		this.$store.dispatch('fetch_methods').then(() => this.joinTransactionsMethods())
+		this.$store.dispatch('fetch_accounts').then(() => this.joinTransactionsAccounts())
+		this.$store.dispatch('fetch_tags').then(() => this.joinTransactionsTags())
+		this.$store.dispatch('fetch_categories')
 		this.fetch();
 	},
 	mounted() {

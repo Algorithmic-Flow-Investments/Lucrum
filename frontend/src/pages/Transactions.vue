@@ -2,17 +2,17 @@
 	<div class="columns">
 		<div class="column is-5">
 			<date-select v-model="range" :target="targetDate" @input="update()"/>
-			<chart ref="chart" :stats="stats" :range="range" :top="topTransaction" @budget="setBudget"/>
+			<chart-wrapper ref="chart" :stats="stats" :range="range" :top="topTransaction" @budget="setBudget" @tagcat="setTagCat"/>
 			<stats :stats="stats" />
 		</div>
 		<div class="column is-7">
-			<list ref="list" :range="range" :categories="budget.categories" @scroll="topTransaction=$event" />
+			<list ref="list" :range="range" @scroll="topTransaction=$event" :extra_params="extra_params" /> <!--:categories="budget.categories"-->
 		</div>
 	</div>
 </template>
 
 <script>
-import Chart from "@/components/transactions/Chart";
+import ChartWrapper from "@/components/transactions/charts/ChartWrapper";
 import Stats from "@/components/transactions/Stats";
 import List from "@/components/transactions/List";
 import DateSelect from "@/components/transactions/DateSelect";
@@ -22,19 +22,16 @@ import moment from "moment";
 
 export default {
 	name: "Transactions",
-	components: { DateSelect, List, Stats, Chart },
+	components: { DateSelect, List, Stats, ChartWrapper },
 	data() {
 		return {
 			range: { min: null, max: null },
 			targetDate: null,
 			topTransaction: null,
-			stats: {
-				gross: {},
-				income: {},
-				outgoing: {},
-				categories: {}
-			},
-			budget: JSON.parse(localStorage.selected_budget || null)
+			stats: null,
+			budget_id: null,
+			eventSource: null,
+			tagCat: {cat_id: null, tag_id: null}
 		};
 	},
 	methods: {
@@ -51,20 +48,65 @@ export default {
 				params: {
 					min: this.range.min.format("YYYY-M-D"),
 					max: this.range.max.format("YYYY-M-D"),
-					budget: this.budget.id
+					budget: this.budget_id
 				}
 			}).then(data => {
 				this.stats = data
 			})
 		},
-		setBudget(budget){
-			this.budget = budget
-			this.fetch()
+		setBudget(budget_id){
+			this.budget_id = budget_id
+			this.update()
+		},
+		setTagCat(selected){
+			this.tagCat = selected
+			this.update()
+		},
+		eventsConnect() {
+			this.eventSource = new EventSource(requests.api + 'subscribe')
+			// this.eventSource.onopen = function(e) {
+			// 	console.log("O", e)
+			// }
+			this.eventSource.onmessage = this.onEvent
+			//
+			// this.eventSource.onerror = function(e) {
+			// 	console.log("err", e)
+			// }
+		},
+		onEvent(message) {
+			let event = JSON.parse(message.data)
+			switch (event.event) {
+				case 'TRANSACTIONS_UPDATED':
+					this.onTransactionsUpdated(event.value);
+					break;
+				case 'TARGETS_UPDATED':
+					this.onTargetsUpdated(event.value);
+					break;
+			}
+		},
+		onTransactionsUpdated(transaction_ids) {
+			this.$refs.list.onTransactionsUpdated(transaction_ids)
+		},
+		onTargetsUpdated(target_ids) {
+			this.$refs.list.onTargetsUpdated(target_ids)
+		}
+	},
+	computed: {
+		extra_params() {
+			let params = {}
+			if (this.budget_id) params.budget_id = this.budget_id
+			if (this.tagCat.cat_id) params.category_id = this.tagCat.cat_id
+			if (this.tagCat.tag_id) params.tag_id = this.tagCat.tag_id
+			return params;
 		}
 	},
 	created() {
 		this.fetch()
 		this.targetDate = moment(this.$route.query.date)
+		this.eventsConnect()
+	},
+	destroyed() {
+		this.eventSource.close()
 	}
 };
 </script>

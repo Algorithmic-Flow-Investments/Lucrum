@@ -1,14 +1,14 @@
 <template>
 	<segment :colour="colour"
 			 :amount="transaction.amount"
-			 :title="target.concat((isInBudget) ? '' : ' N')"
+			 :title="target_name.concat((isInBudget) ? '' : ' N')"
 			 :subtitle="date"
 			 @activate="$emit('activate', transaction)"
 			 @deactivate="$emit('deactivate')"
 			 ref="segment"
 			 v-show="!hidden"
-			 :internal="internal">
-		<transaction-edit :data="transaction" @update-target="$emit('update-target', $event)"></transaction-edit>
+			 :internal="is_internal">
+		<transaction-edit :transaction="transaction"></transaction-edit>
 	</segment>
 </template>
 
@@ -17,14 +17,18 @@ import Segment from "@/components/Segment";
 import moment from "moment";
 import TransactionEdit from "@/components/transactions/TransactionEdit";
 import * as requests from "@/helpers/requests";
+import Transaction from "@/Models/Transaction";
 
 export default {
-	name: "Transaction",
+	name: "TransactionSegment",
 	components: { TransactionEdit, Segment },
-	props: ["data", "activeTransaction", "categories"],
+	props: {
+		transaction: Transaction,
+		activeTransaction: Object,
+		categories: Array,
+	},
 	data() {
 		return {
-			transaction: this.data,
 			active: false
 		};
 	},
@@ -44,7 +48,7 @@ export default {
 	},
 	computed: {
 		colour() {
-			if (this.internal) {
+			if (this.is_internal) {
 				return "internal"
 			}
 			if (this.transaction.amount > 0) {
@@ -55,15 +59,23 @@ export default {
 			}
 			return "null"
 		},
-		target() {
-			return ((!this.transaction.target) ? this.transaction.raw :
-				   (this.internal) ? this.transaction.account.name + " -> " + this.transaction.target.name : this.transaction.target.name);
+		target_name() {
+			if (!this.transaction.target) return this.transaction.raw_info;
+			if (this.is_internal) {
+				if (this.transaction.amount < 0) {
+					return this.transaction.account.name + " -> " + this.transaction.target.name
+				}
+				else {
+					return this.transaction.target.name + " -> " + this.transaction.account.name
+				}
+			}
+			return this.transaction.target.name;
 		},
 		date() {
 			return moment(this.transaction.date).format("ddd, D MMM YYYY");
 		},
-		internal() {
-			return this.transaction.target && this.transaction.target.internal
+		is_internal() {
+			return this.transaction.target && this.transaction.target.is_internal
 		},
 		hidden() {
 			if (this.internal){
@@ -74,6 +86,7 @@ export default {
 			return false
 		},
 		isInBudget(){
+			return true;
 			return this.transaction.tags.filter(tag => tag.category && this.categories.indexOf(tag.category.id) !== -1).length > 0
 		}
 	}

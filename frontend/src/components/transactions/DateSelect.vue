@@ -59,7 +59,7 @@ export default {
 				this.$emit("input", this.range);
 				this.old.min = this.range.min.clone()
 				this.old.max = this.range.max.clone()
-				this.$router.push({ query: { date: this.endDateSnapped.format('YYYY-MM-DD') }})
+				this.$router.push({ query: Object.assign({}, this.$route.query, {date: this.endDateSnapped.format('YYYY-MM-DD')})})
 			}
 		},
 		update() {

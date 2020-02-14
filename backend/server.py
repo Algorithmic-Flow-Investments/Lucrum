@@ -27,6 +27,9 @@ def create_app():
 	from api.api import api
 	app.register_blueprint(api)
 
+	from api2.api2 import api
+	app.register_blueprint(api)
+
 	return app
 
 

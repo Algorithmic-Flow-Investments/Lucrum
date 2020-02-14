@@ -8,7 +8,7 @@ from selenium.webdriver.remote.remote_connection import LOGGER
 LOGGER.setLevel(logging.ERROR)
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -137,7 +137,7 @@ class SantanderAccount(BankInterface):
 
 		return float(amount.replace('£', '').replace(',', ''))
 
-	def get_transactions(self, from_date, to_date, navigate=True):
+	def get_transactions(self, from_date, to_date, navigate=True, retries=3):
 		driver = self.driver
 
 		# upper bound is inclusive for santander
@@ -145,11 +145,21 @@ class SantanderAccount(BankInterface):
 
 		if navigate:
 			self.goto_page()
-			download_link = WebDriverWait(driver,
-											10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.download')))
-			download_link.click()
+			try:
+				download_link = WebDriverWait(driver,
+												10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.download')))
+				download_link.click()
+			except TimeoutException:
+				if retries <= 0:
+					return None
+				self.get_transactions(from_date, to_date, navigate, retries - 1)
 
-		Select(driver.find_element_by_css_selector('#sel_downloadto')).select_by_visible_text('Text file (TXT)')
+		try:
+			Select(driver.find_element_by_css_selector('#sel_downloadto')).select_by_visible_text('Text file (TXT)')
+		except NoSuchElementException:
+			if retries <= 0:
+				return None
+			self.get_transactions(from_date, to_date, navigate, retries - 1)
 
 		from_day = driver.find_element_by_css_selector('[name="downloadStatementsForm.fromDate.day"]')
 		from_month = driver.find_element_by_css_selector('[name="downloadStatementsForm.fromDate.month"]')

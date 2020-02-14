@@ -103,13 +103,15 @@ class Transaction(db.Model):
 				self.target = other_account_target
 
 	def process(self):
+		method_change = False
+		target_change = False
 		if self.info is not None:
 			if not self.manual_method:
 				method_change = self.process_method()
 			if not self.manual_target:
 				target_change = self.process_target()
 			self.process_internal()
-			return method_change or target_change
+		return method_change or target_change
 
 	def process_method(self):
 		old = self.method_id
@@ -156,17 +158,18 @@ class Transaction(db.Model):
 		return '<Transaction {} at {} on {} using {} tags: {}>'.format(self.amount, self.target, self.date, self.method,
 																		self.tags)
 
-	def data(self):
+	def data_extra(self):
+		return dict(self.data_basic(), **{'real_amount': self.amount, 'method_id': self.method_id})
+
+	def data_basic(self):
 		return {
-			'amount': self.alt_amount,
-			'real_amount': self.amount,
 			'id': self.id,
+			'amount': self.alt_amount,
 			'date': self.date,
-			'target': self.target.data_advanced() if self.target is not None else None,
-			'tags': [tag.data_advanced(self) for tag in self.tags],
-			'raw': self.info,
-			'method': self.method.data_basic() if self.method is not None else None,
-			'account': self.account.data_basic()
+			'target_id': self.target.id if self.target else None,
+			'account_id': self.account.id,
+			'tag_ids': [tag.id for tag in self.tags],
+			'raw_info': self.info
 		}
 
 
