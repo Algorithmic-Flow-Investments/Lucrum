@@ -3,11 +3,9 @@ import logging
 
 import flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 
-from models import Account, Tag
 from server_data import *
-
-from sqlalchemy import join, select
 
 logging.basicConfig(filename='server.log',
 					format='%(asctime)s | %(filename)s:%(lineno)d | %(funcName)s | %(levelname)s | %(message)s',

@@ -14,3 +14,5 @@ sqlalchemy
 regex
 yapf
 unify
+Flask-Migrate
+flask_script

@@ -6,7 +6,7 @@ from typing import List
 from database import db
 from models import Transaction, MethodString, TargetString, Target
 from processing.task_queue import EventManager
-from server import create_app
+from app import create_app
 from multiprocessing import Pool, cpu_count, Process, Value, Array
 from threading import Thread
 import os

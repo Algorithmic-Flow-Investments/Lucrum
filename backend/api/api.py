@@ -6,10 +6,7 @@ from flask import Blueprint, jsonify, request
 from api import transactions
 from api import accounts
 from database import db
-from models import Tag, Category, Budget
-from models.account import Account
-from models.scheduled import ScheduledTransaction
-from models.transaction import Transaction, Target, TargetString, Method, MethodString
+from models import Tag, Category, Budget, Transaction, Target, TargetString, Method, MethodString, ScheduledTransaction, Account
 from server_data import new_database, populate_database
 
 api = Blueprint('api', __name__)
