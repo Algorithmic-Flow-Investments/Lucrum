@@ -1,15 +1,14 @@
-import sqlalchemy
+from datetime import datetime
+
 from dateutil.parser import parse
-from sqlalchemy import join, select, text, ForeignKeyConstraint
-from sqlalchemy.sql.functions import coalesce
+from sqlalchemy import select
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import foreign
+from sqlalchemy.sql.functions import coalesce
 
 from database import db
 from models.method import Method, MethodString
-from models.tag import Tag, target_tags, transaction_tags
 from models.target import Target, TargetString
-from datetime import datetime
+from processing import process_transactions
 from .transaction_imported import TransactionImported
 from .transaction_inferred import TransactionInferred
 from .transaction_manual import TransactionManual
@@ -24,6 +23,7 @@ class Transaction(db.Model):
 	data_imported = db.relationship(TransactionImported, backref="parent", uselist=False)
 	data_inferred = db.relationship(TransactionInferred, backref="parent", uselist=False)
 	data_manual = db.relationship(TransactionManual, backref="parent", uselist=False)
+
 	tags = db.relationship(
 		"Tag",
 		secondary="outerjoin(Tag, target_tags, target_tags.c.tag_id == Tag.id)."
@@ -34,7 +34,6 @@ class Transaction(db.Model):
 		backref="transactions",
 		uselist=True)
 
-	#
 	# parent_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
 	# linked_transactions = db.relationship('Transaction', backref=db.backref('parent_transaction', remote_side=[id]))
 
@@ -52,6 +51,7 @@ class Transaction(db.Model):
 	def info(self):
 		return self.data_imported.info
 
+	# noinspection PyMethodParameters
 	@info.expression
 	def info(cls):
 		return select([TransactionImported.info]).where(cls.id == TransactionImported.id).as_scalar()
@@ -61,15 +61,20 @@ class Transaction(db.Model):
 	def amount(self):
 		return self.data_manual.amount or self.data_imported.amount
 
+	# noinspection PyMethodParameters
 	@amount.expression
 	def amount(cls):
 		return Transaction.construct_coalesce(cls, manual=TransactionManual.amount, imported=TransactionImported.amount)
 
+	def set_amount(self, value):
+		self.data_manual.amount = value
+
 	# Date
 	@hybrid_property
-	def date(self):
+	def date(self) -> datetime:
 		return self.data_manual.date or self.data_inferred.date or self.data_imported.date
 
+	# noinspection PyMethodParameters,PyMethodParameters,PyMethodParameters
 	@date.expression
 	def date(cls):
 		return Transaction.construct_coalesce(cls,
@@ -77,11 +82,15 @@ class Transaction(db.Model):
 												inferred=TransactionInferred.date,
 												imported=TransactionImported.date)
 
+	def set_date(self, value):
+		self.data_manual.date = value
+
 	# Target
 	@hybrid_property
 	def target_id(self):
 		return self.data_manual.target_id or self.data_inferred.target_id
 
+	# noinspection PyMethodParameters
 	@target_id.expression
 	def target_id(cls):
 		return Transaction.construct_coalesce(cls,
@@ -92,11 +101,17 @@ class Transaction(db.Model):
 	def target(self):
 		return Target.query.filter(Target.id == self.target_id).first()
 
+	def set_target(self, value):
+		if type(value) == Target:
+			value = value.id
+		self.data_manual.target_id = value
+
 	# Method
 	@hybrid_property
 	def method_id(self):
 		return self.data_manual.method_id or self.data_inferred.method_id
 
+	# noinspection PyMethodParameters
 	@method_id.expression
 	def method_id(cls):
 		return Transaction.construct_coalesce(cls,
@@ -107,14 +122,12 @@ class Transaction(db.Model):
 	def method(self):
 		return Method.query.filter(Method.id == self.method_id).first()
 
-	# @hybrid_property
-	# def tags(self):
-	# 	return self.data_manual.tags or self.data_inferred.tags
-	#
-	# @tags.expression
-	# def tags(cls):
-	# 	return select([Tag]).where(TransactionManual.tags).where(TransactionManual.id == cls.id)
+	def set_method(self, value):
+		if type(value) == Method:
+			value = value.id
+		self.data_manual.method_id = value
 
+	# noinspection PyMissingTypeHints
 	@staticmethod
 	def construct_coalesce(cls, manual=None, inferred=None, imported=None):
 		if manual and inferred and imported:
@@ -137,81 +150,13 @@ class Transaction(db.Model):
 				select([imported]).where(cls.id == TransactionImported.id).as_scalar())
 
 	@property
-	def alt_amount(self):  # TODO: Integrate this with the actual amount property
-		return round(self.amount - sum(transaction.amount for transaction in self.linked_transactions), 2)
+	def alt_amount(self):  # TODO: Re-add linked account, move to inferred?
+		return self.amount
 
-	def process_internal(self):
-		mirrored_transaction = Transaction.query.filter(Transaction.amount == -self.amount,
-														Transaction.date == self.date,
-														Transaction.account != self.account).first()
-		if mirrored_transaction:
-			this_account_target = Target.query.filter_by(name=self.account.name).first()
-			other_account_target = Target.query.filter_by(name=mirrored_transaction.account.name).first()
-			if this_account_target and other_account_target:
-				mirrored_transaction.target = this_account_target
-				self.target = other_account_target
+	# return round(self.amount - sum(transaction.amount for transaction in self.linked_transactions), 2)
 
 	def process(self):
-		method_change = False
-		target_change = False
-		date_change = False
-		if self.info is not None:
-			method_change = self.process_method()
-			target_change = self.process_target()
-			date_change = self.process_date()
-			# self.process_internal()
-		return method_change or target_change or date_change
-
-	def process_date(self):
-		old = self.data_inferred.date
-		raw = self.info.lower()  # type: str
-		if raw.find(' on '):
-			split = raw.split(' on ')
-			new = parse(split[-1])
-			self.data_inferred.date = new
-			return old != new
-		return False
-
-	def process_method(self):
-		old = self.data_inferred.method_id
-		raw = self.info.lower()
-		for methodStr in MethodString.query.all():
-			if raw.find(methodStr.string) != -1:
-				self.data_inferred.method_id = methodStr.parent.id
-				return self.data_inferred.method_id != old
-
-		self.data_inferred.method_id = None  # TODO: Manual clas
-		return False
-
-	def process_target(self):
-		old = self.data_inferred.target_id
-		raw = self.info.lower()  # type: str
-		if raw.find('ref.'):
-			split = raw.split('ref.', maxsplit=1)
-		elif raw.find('reference') != -1:
-			split = raw.split('reference', maxsplit=1)
-		if len(split) > 1:
-			if split[1].find('from') != -1:
-				split2 = split[1].split('from', maxsplit=1)
-			else:
-				split2 = split[1].split(',', maxsplit=1)
-			raw = split[0] + split2[1]
-			self.data_inferred.reference = split2[0]
-
-		for targetStr in TargetString.query.all():
-			if raw.find(targetStr.string) != -1:
-				self.data_inferred.target_id = targetStr.parent.id
-				return self.target_id != old
-
-		# If ignoring reference doesn't work, include it
-		raw = self.info.lower()
-		for targetStr in TargetString.query.all():
-			if raw.find(targetStr.string) != -1:
-				self.data_inferred.target_id = targetStr.parent.id
-				return self.data_inferred.target_id != old
-
-		self.data_inferred.target_id = None  # TODO: Manual clas
-		return False
+		process_transactions.process_transaction(self)
 
 	def __repr__(self):
 		return '<Transaction {} at {} on {} using {} tags: {}>'.format(self.amount, self.target, self.date, self.method,
@@ -230,3 +175,22 @@ class Transaction(db.Model):
 			'tag_ids': [tag.id for tag in self.tags],
 			'raw_info': self.info
 		}
+
+
+# Transaction.target = db.relationship(Target,
+# 										viewonly=True,
+# 										uselist=False,
+# 										secondary=Transaction,
+# 										primaryjoin=foreign(Transaction.target_id) == remote(Target.id))
+
+# s = select([Target]).join(Transaction, Transaction.id == Target.id)
+# print(s)
+# m = mapper(Target, s, non_primary=True)
+#
+# print(m)
+
+# Transaction.target = db.relationship(Target,
+# 										viewonly=True,
+# 										uselist=False,
+# 										primaryjoin=foreign(Transaction.target_id) == remote(Target.id),
+# 										foreign_keys=[Transaction.target_id])

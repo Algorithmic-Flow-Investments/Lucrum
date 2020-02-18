@@ -1,10 +1,32 @@
 from sqlalchemy import select, join, outerjoin
+from werkzeug.datastructures import MultiDict
 
 from models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, target_tags, transaction_tags
 from models.transaction.transaction_inferred import TransactionInferred
 from app import create_app
 from database import db
 from datetime import datetime
+from api2 import transactions, meta
+import pytest
+
+app = create_app()
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///tests/database-test.db"
+
+
+def get_context(test_func):
+	def context_wrapper():
+		with app.app_context():
+			test_func()
+
+	return context_wrapper
+
+
+@pytest.fixture(scope='function', autouse=True)
+@get_context
+def build_test_db():
+	db.reflect()
+	db.drop_all()
+	db.create_all()
 
 
 def getSqlValue(sel, transaction_id):
@@ -14,6 +36,7 @@ def getSqlValue(sel, transaction_id):
 	return fetch[0][0]
 
 
+@get_context
 def test_date():
 	account = Account("test-acc")
 
@@ -36,6 +59,7 @@ def test_date():
 	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 4, 3)
 
 
+@get_context
 def test_target():
 	account = Account("test-acc")
 
@@ -51,6 +75,7 @@ def test_target():
 	assert t1.target_id == target1.id
 	assert t1.target.id == target1.id
 	assert getSqlValue(Transaction.target_id, t1.id) == target1.id
+	assert len(target1.transactions) == 1
 
 	target2 = Target("Sains-test-two")
 	db.session.add(target2)
@@ -63,6 +88,7 @@ def test_target():
 	assert getSqlValue(Transaction.target_id, t1.id) == target2.id
 
 
+@get_context
 def test_method():
 	account = Account("test-acc")
 
@@ -91,6 +117,7 @@ def test_method():
 	assert getSqlValue(Transaction.method_id, t1.id) == method2.id
 
 
+@get_context
 def test_amount():
 	account = Account("test-acc")
 	t1 = Transaction(account, 5, datetime(2020, 2, 3),
@@ -106,6 +133,7 @@ def test_amount():
 	assert getSqlValue(Transaction.amount, t1.id) == 10
 
 
+@get_context
 def test_tags():
 	account = Account("test-acc")
 
@@ -152,16 +180,47 @@ def test_tags():
 	assert [t.id for t in q] == [3, 4, 2]
 
 
+@get_context
+def test_api():
+	account = Account("test-acc")
+	account2 = Account("test-bank")
+	db.session.add(account2)
+
+	target1 = Target("Sains-test")
+	ts = TargetString(target1, "sainsburys")
+	tag1 = Tag("tag1")
+	target1.tags.append(tag1)
+	db.session.add(target1)
+
+	ts2 = TargetString(account2.target, "bank")
+
+	t1 = Transaction(account, 5, datetime(2020, 2, 3), "CARD PAYMENT TO bank,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	db.session.add(t1)
+
+	t2 = Transaction(account, 8, datetime(2020, 2, 3),
+						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	db.session.add(t2)
+
+	db.session.commit()
+
+	query = MultiDict([
+		('min', '2020-02-02'),
+		('max', '2020-02-04'),
+	])
+
+	lst = transactions.transactions_list(query)
+	assert [t['id'] for t in lst] == [1, 2]
+
+	stats = transactions.stats(query)
+	assert stats['total']['gross'] == 8
+
+	mstats = meta.stats(None)
+	assert mstats['transactions'] == 2
+
+
 if __name__ == "__main__":
-	app = create_app()
-	app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///database-test.db"
 	with app.app_context():
 		db.reflect()
 		db.drop_all()
 		db.create_all()
-
-		# test_date()
-		# test_target()
-		# test_amount()
-		# test_method()
-		test_tags()
+		test_api()

@@ -33,7 +33,6 @@ export default class Transaction {
 		}
 		this.tags = this.getTags()
 		this.raw_info = data.raw_info || this.raw_info || "";
-		this.manual_target = data.manual_target
 	}
 
 	fetch() {
@@ -71,43 +70,8 @@ export default class Transaction {
 			account_id: this.account_id,
 			tag_ids: this.tag_ids,
 			raw_info: this.raw_info,
-			manual_target: this.manual_target
 		}
 	}
-
-	// get account() {
-	// 	return this._account;
-	// }
-
-	// get target() {
-	// 	if (this.target_id === null) {
-	// 		return null;
-	// 	}
-	// 	else if (this._target === undefined) {
-	// 		// requests.get(`targets/get/${this.target_id}`).then(data => {
-	// 		// 	if (this.target === undefined) {
-	// 		// 		this.target = new Target(data);
-	// 		// 	}
-	// 		// })
-	// 		//console.error("Target not available in", this)
-	// 	}
-	// 	return this._target;
-	// }
-
-	// get method() {
-	// 	if (this.method_id === null) {
-	// 		return null;
-	// 	}
-	// 	else if (this._method === undefined) {
-	// 		// requests.get(`methods/get/${this.method_id}`).then(data => {
-	// 		// 	if (this.method === undefined) {
-	// 		// 		this.method = new method(data);
-	// 		// 	}
-	// 		// })
-	// 		//console.error("method not available in", this)
-	// 	}
-	// 	return this._method;
-	// }
 
 	getTarget() {
 		let data = store.state.targets

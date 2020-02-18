@@ -1,3 +1,5 @@
+from typing import Dict
+
 from database import db
 from models.target import Target
 
@@ -14,7 +16,7 @@ class Tag(db.Model):
 	def __repr__(self):
 		return '<Tag "' + self.name + '">'
 
-	def data_basic(self):
+	def data_basic(self) -> Dict:
 		return {
 			'name': self.name,
 			'id': self.id,

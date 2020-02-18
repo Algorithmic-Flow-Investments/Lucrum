@@ -1,3 +1,5 @@
+from typing import Dict
+
 from database import db
 
 
@@ -14,6 +16,8 @@ class Target(db.Model):
 
 	def __init__(self, name, internal_account=None):
 		self.name = name
+		if internal_account:
+			self.internal_account_id = internal_account.id
 		"""if internal_account:
 			self.internal_account_id = internal_account.id
 		else:
@@ -27,7 +31,7 @@ class Target(db.Model):
 			return '<Target ' + str(self.internal_account) + '>'
 		return '<Target "' + self.name + '">'
 
-	def data_basic(self):
+	def data_basic(self) -> Dict:
 		return {
 			'name': self.name,
 			'id': self.id,
@@ -36,10 +40,15 @@ class Target(db.Model):
 			'usages': len(self.transactions)
 		}
 
-	def data_extra(self):
+	def data_extra(self) -> Dict:
 		return dict(self.data_basic(), **{
 			'strings': [string.data() for string in self.substrings],
 		})
+
+	@property
+	def transactions(self):
+		transaction = next(table for table in db.Model.__subclasses__() if table.__name__ == 'Transaction')
+		return db.session.query(transaction).filter_by(target_id=self.id).all()
 
 
 class TargetString(db.Model):
@@ -52,5 +61,5 @@ class TargetString(db.Model):
 		parent.substrings.append(self)
 		self.string = str(string).lower()
 
-	def data(self):
+	def data(self) -> Dict:
 		return {'string': self.string, 'id': self.id}

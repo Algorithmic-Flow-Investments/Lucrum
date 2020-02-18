@@ -2,9 +2,8 @@ from typing import Dict
 
 from werkzeug.datastructures import MultiDict
 
-from models import Tag
-
 from database import db
+from models import Tag
 
 
 def tags_list(query: MultiDict):

@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Dict
 
 from sqlalchemy import func
 
 from database import db
-from models.transaction import Transaction
 from models.target import Target
+from models.transaction import Transaction
 from utils import date_range
 
 
@@ -35,7 +36,7 @@ class Account(db.Model):
 	def __repr__(self):
 		return '<Account "' + self.name + '">'
 
-	def data_basic(self):
+	def data_basic(self) -> Dict[str, str]:
 		return {'name': self.name, 'amount': self.balance, 'id': self.id, 'description': self.description}
 
 	def data_extra(self):
@@ -54,7 +55,7 @@ class Account(db.Model):
 		graph[self.start.strftime("%Y-%m-%d")] = 0
 		return graph
 
-	def update(self, data):
+	def update(self, data: Dict) -> None:
 		# print(f"== Updating {self} ==")
 		self.balance = data['balance']
 		for transaction in data['transactions']:
@@ -71,14 +72,18 @@ class Account(db.Model):
 			transaction.process_internal()
 		db.session.commit()
 
-	def calculated_total(self, date=datetime.today()):
+	def calculated_total(self, date=None):
+		if date is None:
+			date = datetime.today()
 		if self.bankLink is not None:
+			# noinspection PyTypeChecker
 			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
 				Transaction.account_id == self.id, Transaction.date >= date).scalar()
 			if total is None:
 				total = 0
 			return round(self.balance - total, 3)
 		else:
+			# noinspection PyTypeChecker
 			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
 				Transaction.target_id == self.target.id, Transaction.date <= date).scalar()
 			if total is None:

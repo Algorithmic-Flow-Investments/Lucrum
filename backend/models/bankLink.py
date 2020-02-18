@@ -1,7 +1,8 @@
 import os
 import pickle
 import time
-from typing import Dict, Tuple
+from datetime import datetime
+from typing import Dict, Tuple, Optional
 
 from simplecrypt import encrypt, decrypt
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -19,26 +20,26 @@ class BankLink(db.Model):
 	questions = db.Column(db.BLOB, nullable=True)
 	db_password_hash = db.Column(db.String(80), nullable=False)
 
-	def __init__(self, bank, userID, password, sec_num, questions, dbpassword):
+	def __init__(self, bank, user_id, password, sec_num, questions, db_password):
 		self.bank = bank
-		self.db_password_hash = generate_password_hash(dbpassword)
-		self.userID = encrypt(dbpassword, userID.encode('utf8'))
-		self.password = encrypt(dbpassword, password.encode('utf8'))
-		self.sec_num = encrypt(dbpassword, sec_num.encode('utf8'))
-		self.questions = encrypt(dbpassword, pickle.dumps(questions))
+		self.db_password_hash = generate_password_hash(db_password)
+		self.userID = encrypt(db_password, user_id.encode('utf8'))
+		self.password = encrypt(db_password, password.encode('utf8'))
+		self.sec_num = encrypt(db_password, sec_num.encode('utf8'))
+		self.questions = encrypt(db_password, pickle.dumps(questions))
 
-	def check_password(self, dbpassword):
-		return check_password_hash(self.db_password_hash, dbpassword)
+	def check_password(self, db_password: str) -> bool:
+		return check_password_hash(self.db_password_hash, db_password)
 
-	def connect(self, dbpassword):
-		if not self.check_password(dbpassword):
-			return 0
-		user_id: str = decrypt(dbpassword, self.userID).decode('utf8')
-		password: str = decrypt(dbpassword, self.password).decode('utf8')
-		sec_num: str = decrypt(dbpassword, self.sec_num).decode('utf8')
-		questions: Dict[str, str] = pickle.loads(decrypt(dbpassword, self.questions))
+	def connect(self, db_password: str) -> Optional[banking.SantanderUser]:
+		if not self.check_password(db_password):
+			return None
+		user_id: str = decrypt(db_password, self.userID).decode('utf8')
+		password: str = decrypt(db_password, self.password).decode('utf8')
+		sec_num: str = decrypt(db_password, self.sec_num).decode('utf8')
+		questions: Dict[str, str] = pickle.loads(decrypt(db_password, self.questions))
 		questions = {k.strip("?"): v for k, v in questions.items()}
-		self.questions = encrypt(dbpassword, pickle.dumps(questions))
+		self.questions = encrypt(db_password, pickle.dumps(questions))
 		db.session.commit()
 
 		accounts: Dict[str, Tuple] = {account.name: tuple(account.identifier.split('|')) for account in self.accounts}
@@ -48,12 +49,14 @@ class BankLink(db.Model):
 
 		return user
 
-	def retrieve_data(self, dbpassword, from_date, to_date, force=False):
+	def retrieve_data(self, db_password: str, from_date: datetime, to_date: datetime, force: bool = False) -> None:
 		if os.path.exists('cached.dat') and not force:
 			with open('cached.dat', 'rb') as f:
 				data = pickle.load(f)
 		else:
-			user = self.connect(dbpassword)
+			user = self.connect(db_password)
+			if user is None:
+				raise Exception("Invalid login")
 			data = {}
 			for account in user.accounts:
 				data[account.name] = {

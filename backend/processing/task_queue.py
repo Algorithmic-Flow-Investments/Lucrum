@@ -6,7 +6,7 @@ from typing import List
 
 from database import db
 from models import Transaction, Target
-from server import create_app
+from app import create_app
 
 
 class Event:

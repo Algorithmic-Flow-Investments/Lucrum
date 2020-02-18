@@ -4,6 +4,7 @@ from logging import info
 import prebuilt
 from database import db
 from models import BankLink, Transaction
+from processing import process_transactions
 from userConfigLoader import load_accounts, load_budgets
 from user_config import CREDENTIALS
 
@@ -38,7 +39,6 @@ def populate_database(force=False, latest=True):
 	db.session.commit()
 
 	info('Processing data... (' + str(Transaction.query.count()) + ' transactions)')
-	for t in Transaction.query.all():
-		t.process()
+	process_transactions.update_all(False)
 
 	db.session.commit()

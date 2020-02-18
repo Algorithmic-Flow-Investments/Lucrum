@@ -1,3 +1,5 @@
+from typing import Dict
+
 from database import db
 
 
@@ -10,5 +12,5 @@ class Category(db.Model):
 	def __init__(self, name):
 		self.name = name
 
-	def data_basic(self):
+	def data_basic(self) -> Dict:
 		return {'id': self.id, 'name': self.name}

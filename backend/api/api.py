@@ -66,7 +66,7 @@ def transaction_advanced(id):
 		print(data)
 		for key, value in data.items():
 			if key == 'target':
-				transaction.target_id = value
+				transaction.set_target(value)
 
 			if key == 'method':
 				transaction.method_id = value

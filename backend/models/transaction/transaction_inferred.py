@@ -1,5 +1,9 @@
+from typing import TYPE_CHECKING
+
 from database import db
-from datetime import datetime
+
+if TYPE_CHECKING:
+	from .transaction import Transaction
 
 
 class TransactionInferred(db.Model):
@@ -19,14 +23,11 @@ class TransactionInferred(db.Model):
 		'join(Tag, target_tags.c.tag_id == Tag.id).join(Transaction, Transaction.target_id == Target.id)',
 		primaryjoin='TransactionInferred.id == Transaction.id')
 
-	# primaryjoin='TransactionInferred.target_id==target_tags.c.target_id')
-
-	# tags = db.relationship('Tag', secondary='target_tags', primaryjoin='Transaction.target_id==target_tags.c.target_id')
-
-	def __init__(self, transaction: "Transaction"):
-		#, date: datetime, reference: str, target: "Target", method: "Method"
+	def __init__(self, transaction: Transaction):
+		# , date: datetime, reference: str, target: "Target", method: "Method"
 		self.id = transaction.id
-		# self.date = date
-		# self.reference = reference
-		# self.target_id = target.id
-		# self.method_id = method.id
+
+	# self.date = date
+	# self.reference = reference
+	# self.target_id = target.id
+	# self.method_id = method.id

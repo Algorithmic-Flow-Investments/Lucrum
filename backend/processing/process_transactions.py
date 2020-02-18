@@ -1,21 +1,19 @@
-import signal
-from multiprocessing.pool import AsyncResult
+from multiprocessing import Process, Value
+from threading import Thread
 from time import sleep
 from typing import List
 
-from database import db
-from models import Transaction, MethodString, TargetString, Target
-from processing.task_queue import EventManager
 from app import create_app
-from multiprocessing import Pool, cpu_count, Process, Value, Array
-from threading import Thread
-import os
-
-import code, traceback, signal
+from database import db
+from models import Transaction
+from processing.task_queue import EventManager
+from processing.transaction_processors import process_date, process_method, process_target, process_internal
 
 
 class ProgressTracker:
-	def __init__(self, updated=[]):
+	def __init__(self, updated=None) -> None:
+		if updated is None:
+			updated = []
 		self.updated = updated
 		self.progress = Value('d', 0.0)
 		if updated:
@@ -26,7 +24,7 @@ class ProgressTracker:
 			t = Thread(target=self._wait_to_send, daemon=True)
 			t.start()
 
-	def wait(self, timeout=30, delay=0.5):
+	def wait(self, timeout: int = 30, delay: float = 0.5) -> List[Transaction]:
 		countdown = timeout / delay
 		while self.progress.value < 1:
 			sleep(delay)
@@ -36,7 +34,7 @@ class ProgressTracker:
 				raise TimeoutError()
 		return self.updated
 
-	def _wait_to_send(self):
+	def _wait_to_send(self) -> None:
 		results = self.wait()
 		results = [t for sub in results for t in sub]
 
@@ -50,7 +48,7 @@ class ProgressTracker:
 		self.progress.value = value
 
 
-def update_all(threaded=True):
+def update_all(threaded: bool = True) -> ProgressTracker:
 	print("Updating all transactions...")
 	tracker = ProgressTracker()
 	if threaded:
@@ -71,14 +69,14 @@ def _update_all(tracker: ProgressTracker):
 		print("Updated:", tracker.updated)
 
 
-def update_transactions(page=0, perpage=100):
+def update_transactions(page=0, per_page=100):
 	with create_app().app_context():
-		transactions = Transaction.query.paginate(page, perpage, False).items
+		transactions = Transaction.query.paginate(page, per_page, False).items
 		updated = update_transactions_list(transactions)
 	return updated
 
 
-def update_transactions_list(transactions, standalone=False):
+def update_transactions_list(transactions: List[Transaction], standalone: bool = False) -> List[Transaction]:
 	updated = []
 	for transaction in transactions:
 		changed = process_transaction(transaction)
@@ -96,76 +94,10 @@ def process_transaction(transaction: Transaction):
 		# print("start transaction", transaction.id)
 		changed = changed or process_method(transaction)
 		changed = changed or process_target(transaction)
+		changed = changed or process_date(transaction)
 		db.session.commit()
 		# print("end   transaction", transaction.id)
 		return changed
-
-
-def process_method(transaction: Transaction):
-	if transaction.manual_method:
-		return False
-	old = transaction.method_id
-	raw = transaction.info.lower()
-	for methodStr in MethodString.query.all():
-		if raw.find(methodStr.string) != -1:
-			transaction.method_id = methodStr.parent.id
-			return transaction.method_id != old
-	transaction.method_id = None  # TODO: Manual clas
-	return False
-
-
-def process_target(transaction: Transaction):
-	if transaction.manual_target:
-		return False
-	old = transaction.target_id
-
-	internal, different = process_internal(transaction)
-	if internal:
-		return different
-
-	raw = transaction.info.lower()  # type: str
-	split = []
-	if raw.find('ref.') != -1:
-		split = raw.split('ref.', maxsplit=1)
-	elif raw.find('reference') != -1:
-		split = raw.split('reference', maxsplit=1)
-	if len(split) > 1:
-		if split[1].find('from') != -1:
-			split2 = split[1].split('from', maxsplit=1)
-		else:
-			split2 = split[1].split(',', maxsplit=1)
-		raw = split[0] + split2[-1]
-		transaction.data_auto.reference = split2[0]
-
-	for targetStr in TargetString.query.all():
-		if raw.find(targetStr.string) != -1:
-			transaction.target_id = targetStr.parent.id
-			return transaction.target_id != old
-
-	# If ignoring reference doesn't work, include it
-	raw = transaction.info.lower()
-	for targetStr in TargetString.query.all():
-		if raw.find(targetStr.string) != -1:
-			transaction.target_id = targetStr.parent.id
-			return transaction.target_id != old
-
-	transaction.target_id = None  # TODO: Manual clas
-	return old is not None
-
-
-def process_internal(transaction: Transaction):
-	old = transaction.target_id
-	mirrored_transaction = Transaction.query.filter(Transaction.amount == -transaction.amount,
-													Transaction.date == transaction.date,
-													Transaction.account != transaction.account).first()
-	if mirrored_transaction:
-		this_account_target = Target.query.filter_by(name=transaction.account.name).first()
-		other_account_target = Target.query.filter_by(name=mirrored_transaction.account.name).first()
-		if this_account_target and other_account_target:
-			mirrored_transaction.target = this_account_target
-			transaction.target = other_account_target
-			return True, transaction.target_id != old
-	return False, transaction.target_id != old
 
 
 if __name__ == "__main__":

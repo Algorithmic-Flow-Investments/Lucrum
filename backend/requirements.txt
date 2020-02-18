@@ -16,3 +16,4 @@ yapf
 unify
 Flask-Migrate
 flask_script
+pytest

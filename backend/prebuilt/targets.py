@@ -11,7 +11,7 @@ TARGETS = {
 	'Wealthsimple': ['wealthsimple'],
 	'Nutmeg': ['nutmeg'],
 	'Vanguard': ['vanguard'],
-	'Amazon': ['amznmktplace'],
+	'Amazon': ['amznmktplace', 'amazon'],
 	'JustPark': ['justpark'],
 	'Tesco': ['tesco'],
 	'Student Loans Company': ['slc disbursements'],

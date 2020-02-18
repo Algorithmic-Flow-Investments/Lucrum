@@ -1,5 +1,9 @@
+from typing import TYPE_CHECKING
+
 from database import db
-from datetime import datetime
+
+if TYPE_CHECKING:
+	from .transaction import Transaction
 
 
 class TransactionManual(db.Model):
@@ -16,12 +20,13 @@ class TransactionManual(db.Model):
 
 	tags = db.relationship('Tag', secondary='transaction_tags')
 
-	def __init__(self, transaction: "Transaction"):
+	def __init__(self, transaction: Transaction):
 		# , amount: int, date: datetime, reference: str, target: "Target",
 		# 					method: "Method"
 		self.id = transaction.id
-		# self.amount = amount
-		# self.date = date
-		# self.reference = reference
-		# self.target_id = target.id
-		# self.method_id = method.id
+
+	# self.amount = amount
+	# self.date = date
+	# self.reference = reference
+	# self.target_id = target.id
+	# self.method_id = method.id

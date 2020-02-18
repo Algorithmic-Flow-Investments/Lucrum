@@ -1,5 +1,5 @@
 import enum
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy import func
 
@@ -43,11 +43,11 @@ class Budget(db.Model):
 		if start is None:
 			start = date.min
 		return Transaction.query \
-                                                                              .join(Transaction.tags, isouter=True) \
-                                                                              .join(Tag.category, isouter=True) \
-                                                                              .join(Category.budgets, isouter=True) \
-                                                                              .filter(Budget.id == self.id) \
-                                                                           .filter(Transaction.date >= start, Transaction.date <= self.endDate)
+         .join(Transaction.tags, isouter=True) \
+         .join(Tag.category, isouter=True) \
+         .join(Category.budgets, isouter=True) \
+         .filter(Budget.id == self.id) \
+         .filter(Transaction.date >= start, Transaction.date <= self.endDate)
 
 	@property
 	def per_day(self):

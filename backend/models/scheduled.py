@@ -14,26 +14,16 @@ class ScheduledTransaction(db.Model):
 	endDate = db.Column(db.DateTime, nullable=True)
 
 	tags = db.relationship('Tag',
-	                       secondary='scheduled_tags',
-	                       lazy='subquery',
-	                       backref=db.backref('scheduled', lazy=True))
+							secondary='scheduled_tags',
+							lazy='subquery',
+							backref=db.backref('scheduled', lazy=True))
 
-	target_id = db.Column(db.Integer,
-	                      db.ForeignKey('target.id'),
-	                      nullable=True)
-	target = db.relationship('Target',
-	                         backref=db.backref('scheduled', lazy=True),
-	                         foreign_keys=[target_id])
+	target_id = db.Column(db.Integer, db.ForeignKey('target.id'), nullable=True)
+	target = db.relationship('Target', backref=db.backref('scheduled', lazy=True), foreign_keys=[target_id])
 
-	def __init__(self,
-	             name,
-	             amount,
-	             date,
-	             tags=[],
-	             target=None,
-	             monthly=False,
-	             weekly=False,
-	             end_date=None):
+	def __init__(self, name, amount, date, tags=None, target=None, monthly=False, weekly=False, end_date=None):
+		if tags is None:
+			tags = []
 		self.name = name
 		self.amount = amount
 		self.date = date
@@ -45,31 +35,27 @@ class ScheduledTransaction(db.Model):
 			if type(tag) == str:
 				tag = Tag.query.filter_by(name=tag).first()
 
-			if tag != None:
+			if tag is not None:
 				self.tags.append(tag)
 
 		if type(target) == str:
 			target = Target.query.filter_by(name=target).first()
 
-		if target != None:
+		if target is not None:
 			self.target = target
 
 	# target.scheduled.append(self)
 
 	def data_basic(self):
 		return {
-		    'name': self.name,
-		    'amount': self.amount,
-		    'id': self.id,
-		    'date': self.date,
-		    'internal': self.target.internal_account is not None
+			'name': self.name,
+			'amount': self.amount,
+			'id': self.id,
+			'date': self.date,
+			'internal': self.target.internal_account is not None
 		}
 
 
 scheduled_tags = db.Table(
-    'scheduled_tags',
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
-    db.Column('scheduled_transaction_id',
-              db.Integer,
-              db.ForeignKey('scheduled_transaction.id'),
-              primary_key=True))
+	'scheduled_tags', db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
+	db.Column('scheduled_transaction_id', db.Integer, db.ForeignKey('scheduled_transaction.id'), primary_key=True))

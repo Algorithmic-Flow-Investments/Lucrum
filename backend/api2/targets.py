@@ -1,6 +1,5 @@
 from typing import Dict
 
-from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import abort
 
