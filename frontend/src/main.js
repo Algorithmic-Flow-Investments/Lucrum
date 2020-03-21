@@ -24,6 +24,11 @@ Vue.use(VueResizeText)
 
 import store from '@/store'
 
+import { DynamicReactiveRefs } from 'vue-reactive-refs'
+Vue.use(DynamicReactiveRefs)
+
+
+
 
 Vue.mixin({
 	computed: {

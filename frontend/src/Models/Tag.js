@@ -33,7 +33,6 @@ export default class Tag {
 		return new Promise((resolve, reject) => {
 			if (this.id) {
 				requests.post(`tags/update/${this.id}`, this).then(data => {
-					console.log('un', data)
 					this.unpack(data)
 					resolve()
 				}).catch(exception => reject(exception))

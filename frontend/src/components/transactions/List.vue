@@ -1,6 +1,6 @@
 <template>
 	<div ref="sect" class="sect">
-		<transition-group name="slide-in" :style="{ '--total': transactions.length }">
+		<transition-group name="slide-in" :style="{ '--total': transactions.length }"> <!-- TODO: Replace with js solution -->
 				<TransactionSegment
 						:active-transaction="activeTransaction"
 						:transaction="transaction"
@@ -53,19 +53,15 @@ export default {
 				max: this.range.max.format("YYYY-M-D"),
 			}
 			params = Object.assign(params, this.extra_params)
-			requests
-				.get("transactions/list", {
-					params: params
-				})
-				.then(transactions => {
-					this.transactions = transactions.map(t => new Transaction(t));
-					this.topTransaction = this.transactions[0]
-					this.joinTransactionsTargets()
-					this.joinTransactionsMethods()
-					this.joinTransactionsAccounts()
-					this.$emit('scroll', this.topTransaction)
-					this.$emit('loaded')
-				});
+			requests.get("transactions/list", {params}).then(transactions => {
+				this.transactions = transactions.map(t => new Transaction(t));
+				this.topTransaction = this.transactions[0]
+				this.joinTransactionsTargets(this.transactions)
+				this.joinTransactionsMethods()
+				this.joinTransactionsAccounts()
+				this.$emit('scroll', this.topTransaction)
+				this.$emit('loaded')
+			})
 		},
 		joinTransactionsTargets(transactions) {
 			if (this.l_targets.length > 0 && transactions) {

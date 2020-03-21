@@ -64,14 +64,7 @@ export default {
 		},
 		eventsConnect() {
 			this.eventSource = new EventSource(requests.api + 'subscribe')
-			// this.eventSource.onopen = function(e) {
-			// 	console.log("O", e)
-			// }
 			this.eventSource.onmessage = this.onEvent
-			//
-			// this.eventSource.onerror = function(e) {
-			// 	console.log("err", e)
-			// }
 		},
 		onEvent(message) {
 			let event = JSON.parse(message.data)

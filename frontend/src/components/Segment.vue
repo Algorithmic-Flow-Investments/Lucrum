@@ -1,6 +1,6 @@
 <template>
-	<div class="segment" :class="{ active }">
-		<div class="normal" @click="activate()">
+	<div class="segment" :class="{ active }" :style="extra_style">
+		<div class="normal" :class="{clickable: $slots.default}" @click="activate()" ref="normal">
 			<div class="colour" :class="colour"></div>
 			<div class="content">
 				<div class="left">
@@ -21,9 +21,9 @@
 				</div>
 			</div>
 		</div>
-		<div v-if="active" class="extra">
-			<slot></slot>
-		</div>
+			<div v-if="active" class="extra" ref="extra">
+				<slot></slot>
+			</div>
 	</div>
 </template>
 
@@ -53,6 +53,23 @@ export default {
 				.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		}
 	},
+	computed: {
+		total_height() {
+			let total = this.$refs.normal.clientHeight + 10
+			if (this.$refs.extra) {
+				total += this.$refs.extra.clientHeight
+			}
+			return total
+		},
+		extra_style() {
+			if (this.active) {
+				return {
+					height: this.total_height + 'px'
+				}
+			}
+			return {}
+		}
+	},
 	methods: {
 		activate() {
 			if (this.$slots.default) {
@@ -63,7 +80,7 @@ export default {
 					this.$emit("deactivate");
 				}
 			}
-		}
+		},
 	}
 };
 </script>
@@ -83,6 +100,10 @@ $duration: 0.4s;
 	z-index: 0;
 	background: rgb(55, 55, 64);
 	position: relative;
+}
+
+.clickable {
+	cursor: pointer;
 }
 
 .segment:not(:last-child) {
@@ -169,7 +190,7 @@ $duration: 0.4s;
 /* Active */
 
 .active.segment {
-	height: calc(50px + 10px + 10px + 150px);
+	/*height: calc(50px + 10px + 10px + 150px);*/
 	z-index: 10;
 }
 

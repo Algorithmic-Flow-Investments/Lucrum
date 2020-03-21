@@ -38,7 +38,7 @@ export default new Vuex.Store({
 			return new Promise(function(resolve, reject) {
 				requests.get("targets/list").then(targets => {
 					commit('updateTargets', targets.map(t => new Target(t)))
-					console.log("got targets")
+					console.log("Vuex> Fetched targets")
 					resolve()
 				})
 			})

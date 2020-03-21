@@ -11,7 +11,7 @@ TARGETS = {
 	'Wealthsimple': ['wealthsimple'],
 	'Nutmeg': ['nutmeg'],
 	'Vanguard': ['vanguard'],
-	'Amazon': ['amznmktplace', 'amazon'],
+	'Amazon': ['amznmktplace', 'amazon', 'amz*', 'amzn'],
 	'JustPark': ['justpark'],
 	'Tesco': ['tesco'],
 	'Student Loans Company': ['slc disbursements'],
@@ -225,4 +225,5 @@ TARGETS = {
 	'Brighton Parking': ['brighton & hove city c'],
 	'Winchester Christmas Market': ['*the gourmet grilled'],
 	'Jhoots Pharmacy': ['jhoots'],
+	'Standing Order Pub': [],
 }

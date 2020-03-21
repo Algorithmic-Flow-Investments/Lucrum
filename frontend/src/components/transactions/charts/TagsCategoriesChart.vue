@@ -93,7 +93,7 @@
 		},
 		computed: {
 			pie () {
-				if (this.chart === {} || !this.totalType || !this.l_tags) return [];
+				if (this.chart === {} || !this.totalType || !this.l_tags.length) return [];
 				if (this.totalType === 'gross') {
 					let p = this.getPie('outgoing', 'outgoing', 'outgoing')
 					p.push(...this.getPie('income', 'income', 'income'))

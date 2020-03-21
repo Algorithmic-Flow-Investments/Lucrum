@@ -43,7 +43,13 @@
 			},
 			update() {
 				requests.post('meta/update').then(data => {
-					location.reload();
+					this.$notification.open({
+						duration: 5000,
+						message: "Updated transactions",
+						position: 'is-top-right',
+						type: 'is-success',
+						hasIcon: true
+					})
 				})
 			}
 		},

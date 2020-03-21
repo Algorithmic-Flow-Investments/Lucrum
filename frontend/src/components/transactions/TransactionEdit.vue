@@ -18,6 +18,9 @@
 	</div>
 
 	<div class="edit">Tags</div>
+	<b-taglist>
+		<b-tag v-for="tag in transaction.tags" :key="tag.id" type="is-primary">{{tag.name}}</b-tag>
+	</b-taglist>
 
 	<b-modal :active.sync="editTarget" has-modal-card>
 		<transaction-target :transaction="transaction" @close="editTarget=false"></transaction-target>
@@ -56,11 +59,12 @@
 		font-size: 14px;
 		width: fit-content;
 		margin: auto;
+		padding-bottom: 5px;
 	}
 
 	.edit {
 		display: flex;
-		padding-bottom: 8px;
+		padding-bottom: 10px;
 	}
 
 	.edit span {

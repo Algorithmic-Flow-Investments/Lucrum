@@ -59,7 +59,7 @@
 				}
 				return this.l_tags.filter(tag => {
 					return tag.name.toLowerCase().includes(this.search.toLowerCase()) ||
-						   tag.category.name.toLowerCase().includes(this.search.toLowerCase());
+						   (tag.category && tag.category.name.toLowerCase().includes(this.search.toLowerCase()));
 				})
 			}
 		},

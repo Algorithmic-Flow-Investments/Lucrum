@@ -27,6 +27,7 @@
 	import BTabItem from "buefy/src/components/tabs/TabItem";
 	import Targets from "@/components/classification/Targets";
 	import Tags from "@/components/classification/Tags";
+	import * as requests from "@/helpers/requests";
 	export default {
 		name: "Classification",
 		components: { Tags, Targets, BTabItem, List },
@@ -34,7 +35,8 @@
 			return {
 				range: {min: moment(0), max: moment()},
 				activeTab: 0,
-				untargeted_transactions: '...'
+				untargeted_transactions: '...',
+				eventSource: null,
 			}
 		},
 		methods: {
@@ -57,6 +59,28 @@
 						break;
 				}
 				this.$router.push({hash: tab})
+			},
+			// Events stuff
+			eventsConnect() {
+				this.eventSource = new EventSource(requests.api + 'subscribe')
+				this.eventSource.onmessage = this.onEvent
+			},
+			onEvent(message) {
+				let event = JSON.parse(message.data)
+				switch (event.event) {
+					case 'TRANSACTIONS_UPDATED':
+						this.onTransactionsUpdated(event.value);
+						break;
+					case 'TARGETS_UPDATED':
+						this.onTargetsUpdated(event.value);
+						break;
+				}
+			},
+			onTransactionsUpdated(transaction_ids) {
+				this.$refs.transactions.onTransactionsUpdated(transaction_ids)
+			},
+			onTargetsUpdated(target_ids) {
+				this.$refs.transactions.onTargetsUpdated(target_ids)
 			}
 		},
 		created() {
@@ -77,6 +101,11 @@
 					this.activeTab = 2;
 					break;
 			}
+
+			this.eventsConnect()
+		},
+		destroyed() {
+			this.eventSource.close()
 		}
 	};
 </script>
