@@ -6,7 +6,8 @@ from typing import List
 
 from database import db
 from models import Transaction, Target
-from app import create_app
+from app_basic import basic_app
+from logging import warn, info
 
 
 class Event:
@@ -59,7 +60,7 @@ class EventManager:
 	@staticmethod
 	def put(event: Event):
 		for connection in EventManager.connections:
-			print(connection, getrefcount(connection))
+			info("Subscription connected")
 			connection.put(event)
 
 	@staticmethod
@@ -67,19 +68,23 @@ class EventManager:
 		EventManager.connections.remove(con)
 
 	@staticmethod
-	def putTransactionsUpdatedEvent(transactions: List[Transaction]):
-		EventManager.put(TransactionsUpdatedEvent([transaction.id for transaction in transactions]))
+	def putTransactionsUpdatedEvent(transactions: List[int]):
+		info(f"Event> Transactions updated {transactions}")
+		EventManager.put(TransactionsUpdatedEvent([t_id for t_id in transactions]))
 
 	@staticmethod
 	def putTargetsUpdatedEvent(targets: List[Target]):
+		info(f"Event> Targets updated {targets}")
 		EventManager.put(TargetsUpdatedEvent([target.id for target in targets]))
 
 	@staticmethod
 	def putHeartbeatEvent():
+		info("Event> Heartbeat")
 		EventManager.put(HeartbeatEvent())
 
 	@staticmethod
 	def putConnectedEvent():
+		info("Event> Connected")
 		EventManager.put(ConnectedEvent())
 
 
@@ -92,7 +97,7 @@ class EventConnection:
 		try:
 			while True:
 				try:
-					with create_app().app_context():
+					with basic_app().app_context():
 						yield "data:" + self.queue.get(timeout=5).toJSON() + "\n\n"
 				except Empty:
 					self.queue.put(HeartbeatEvent())

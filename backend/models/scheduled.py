@@ -1,61 +1,96 @@
+import enum
+from datetime import datetime
+
 from database import db
-from models.tag import Tag
+from models.base import BaseModel
+from models import Account
 from models.target import Target
+from models.transaction import Transaction
+from utils import date_range
 
 
-class ScheduledTransaction(db.Model):
+class ScheduledTransaction(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
+
+	account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=True)
+	account = db.relationship('Account', backref=db.backref('scheduled', lazy=True), foreign_keys=[account_id])
+
 	name = db.Column(db.String(80), nullable=False)
 	amount = db.Column(db.Float, nullable=False)
-	date = db.Column(db.DateTime, nullable=False)
+	start_date = db.Column(db.DateTime, nullable=False)
 
-	monthly = db.Column(db.Boolean, nullable=False)
-	weekly = db.Column(db.Boolean, nullable=False)
-	endDate = db.Column(db.DateTime, nullable=True)
+	class Period(enum.Enum):
+		WEEK = 1
+		MONTH = 2
 
-	tags = db.relationship('Tag',
-							secondary='scheduled_tags',
-							lazy='subquery',
-							backref=db.backref('scheduled', lazy=True))
+	period = db.Column(db.Enum(Period), nullable=True)
+
+	end_date = db.Column(db.DateTime, nullable=True)
 
 	target_id = db.Column(db.Integer, db.ForeignKey('target.id'), nullable=True)
 	target = db.relationship('Target', backref=db.backref('scheduled', lazy=True), foreign_keys=[target_id])
 
-	def __init__(self, name, amount, date, tags=None, target=None, monthly=False, weekly=False, end_date=None):
-		if tags is None:
-			tags = []
+	tags = db.relationship("Tag",
+							secondary="outerjoin(Tag, target_tags, target_tags.c.tag_id == Tag.id)",
+							primaryjoin="ScheduledTransaction.target_id==target_tags.c.target_id")
+
+	def __init__(self,
+					account: Account,
+					name: str,
+					amount: int,
+					start_date: datetime,
+					target: Target,
+					period: Period = None,
+					end_date: datetime = None):
+		self.account = account
 		self.name = name
 		self.amount = amount
-		self.date = date
-		self.monthly = monthly
-		self.weekly = weekly
-		self.endDate = end_date
+		self.start_date = start_date
+		self.end_date = end_date
+		self.period = period
 
-		for tag in tags:
-			if type(tag) == str:
-				tag = Tag.query.filter_by(name=tag).first()
+		if period is None and end_date is None:
+			self.end_date = self.start_date
 
-			if tag is not None:
-				self.tags.append(tag)
-
-		if type(target) == str:
-			target = Target.query.filter_by(name=target).first()
-
-		if target is not None:
-			self.target = target
-
-	# target.scheduled.append(self)
+		self.target_id = target.id
 
 	def data_basic(self):
 		return {
+			'id': self.id,
 			'name': self.name,
 			'amount': self.amount,
-			'id': self.id,
-			'date': self.date,
-			'internal': self.target.internal_account is not None
+			'start_date': self.start_date,
+			'end_date': self.end_date,
+			'period': self.period,
+			'target_id': self.target_id
 		}
 
+	def occurrence_data(self, date: datetime):
+		return {
+			'id': self.id,
+			'amount': self.amount,
+			'date': date,
+			'target_id': self.target_id,
+			'account_id': self.account.id,
+			'tag_ids': [tag.id for tag in self.tags],
+			'raw_info': "SCHEDULED"
+		}
 
-scheduled_tags = db.Table(
-	'scheduled_tags', db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True),
-	db.Column('scheduled_transaction_id', db.Integer, db.ForeignKey('scheduled_transaction.id'), primary_key=True))
+	def occurred_transaction(self, date: datetime):
+		transaction = Transaction(self.account, self.amount, date, "SCHEDULED")
+		transaction.data_manual.target = self.target
+		transaction.scheduled_id = self.id
+		return transaction
+
+	def get_occurrences(self, min_date: datetime, max_date: datetime):
+		if self.period is ScheduledTransaction.Period.MONTH:
+			for date in date_range(min_date, max_date):
+				if date.day == self.start_date.day:
+					yield self.occurred_transaction(date)
+		elif self.period is ScheduledTransaction.Period.WEEK:
+			for date in date_range(min_date, max_date):
+				if date.weekday() == self.start_date.weekday():
+					yield self.occurred_transaction(date)
+		else:
+			if min_date <= self.start_date <= max_date:
+				yield self.occurred_transaction(self.start_date)

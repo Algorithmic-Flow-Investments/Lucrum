@@ -1,16 +1,19 @@
 #!/usr/local/bin/python3
 import logging
+import sys
+from datetime import datetime
 
 import flask
 from flask_cors import CORS
-from flask_migrate import Migrate
 
-from server_data import *
+import server_data
+from database import db
+from models import ScheduledTransaction, Account, Target, Transaction
 
 logging.basicConfig(filename='server.log',
 					format='%(asctime)s | %(filename)s:%(lineno)d | %(funcName)s | %(levelname)s | %(message)s',
 					level=logging.DEBUG)
-logging.getLogger().addHandler(logging.StreamHandler())
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 
 def create_app():
@@ -33,12 +36,12 @@ def create_app():
 
 # noinspection PyUnreachableCode
 def initialise_database():
-	if False: load_accounts()
-	if False: new_database()
-	if False: populate_database()
+	if False: server_data.load_accounts()
+	if False: server_data.new_database()
+	if False: server_data.populate_database()
 
-	prebuilt.save_all()
-	db.session.commit()
+	server_data.prebuilt.save_all()
+	server_data.db.session.commit()
 	"""transaction = Transaction(Account.query.first(), 40, datetime.today(), 'tesco')
 	db.session.add(transaction)
 	db.session.commit()
@@ -54,4 +57,9 @@ if __name__ == '__main__':
 	if True:
 		with app.app_context():
 			initialise_database()
+			# db.session.add(
+			# 	ScheduledTransaction(Account.query.first(), "Bills", 60, datetime.now(), Target.query.first()))
+			# db.session.commit()
+			# print(Transaction.query.filter(Transaction.id == 1751).delete())
+			db.session.commit()
 	app.run(debug=True, threaded=True, use_reloader=True, host='0.0.0.0')

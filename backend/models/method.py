@@ -1,7 +1,8 @@
 from database import db
+from models.base import BaseModel
 
 
-class Method(db.Model):
+class Method(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 
@@ -24,7 +25,7 @@ class Method(db.Model):
 		return {'name': self.name, 'id': self.id, 'strings': [string.data() for string in self.substrings]}
 
 
-class MethodString(db.Model):
+class MethodString(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	string = db.Column(db.Text, nullable=False)
 

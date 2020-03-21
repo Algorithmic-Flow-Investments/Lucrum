@@ -4,12 +4,13 @@ from typing import Dict
 from sqlalchemy import func
 
 from database import db
+from models.base import BaseModel
 from models.target import Target
 from models.transaction import Transaction
 from utils import date_range
 
 
-class Account(db.Model):
+class Account(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 	balance = db.Column(db.Float, nullable=False)
@@ -70,7 +71,7 @@ class Account(db.Model):
 				pass
 		for transaction in self.transactions:
 			transaction.process_internal()
-		db.session.commit()
+		db.session.commit()  # TODO: No commit in model
 
 	def calculated_total(self, date=None):
 		if date is None:

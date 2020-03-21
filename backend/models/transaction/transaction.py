@@ -1,28 +1,26 @@
 from datetime import datetime
-
-from dateutil.parser import parse
 from sqlalchemy import select
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql.functions import coalesce
 
 from database import db
-from models.method import Method, MethodString
-from models.target import Target, TargetString
-from processing import process_transactions
+from models.base import BaseModel
+from models.method import Method
+from models.target import Target
 from .transaction_imported import TransactionImported
 from .transaction_inferred import TransactionInferred
 from .transaction_manual import TransactionManual
 
 
-class Transaction(db.Model):
+class Transaction(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 
 	account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=True)
 	account = db.relationship('Account', backref=db.backref('transactions', lazy=True), foreign_keys=[account_id])
 
-	data_imported = db.relationship(TransactionImported, backref="parent", uselist=False)
-	data_inferred = db.relationship(TransactionInferred, backref="parent", uselist=False)
-	data_manual = db.relationship(TransactionManual, backref="parent", uselist=False)
+	data_imported = db.relationship(TransactionImported, backref="parent", cascade="all, delete", uselist=False)
+	data_inferred = db.relationship(TransactionInferred, backref="parent", cascade="all, delete", uselist=False)
+	data_manual = db.relationship(TransactionManual, backref="parent", cascade="all, delete", uselist=False)
 
 	tags = db.relationship(
 		"Tag",
@@ -34,6 +32,8 @@ class Transaction(db.Model):
 		backref="transactions",
 		uselist=True)
 
+	scheduled_id = None
+
 	# parent_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
 	# linked_transactions = db.relationship('Transaction', backref=db.backref('parent_transaction', remote_side=[id]))
 
@@ -43,8 +43,6 @@ class Transaction(db.Model):
 		self.data_imported = TransactionImported(self, amount, date, info)
 		self.data_inferred = TransactionInferred(self)
 		self.data_manual = TransactionManual(self)
-
-		self.process()
 
 	# Info
 	@hybrid_property
@@ -156,6 +154,7 @@ class Transaction(db.Model):
 	# return round(self.amount - sum(transaction.amount for transaction in self.linked_transactions), 2)
 
 	def process(self):
+		from processing import process_transactions
 		process_transactions.process_transaction(self)
 
 	def __repr__(self):
@@ -173,7 +172,8 @@ class Transaction(db.Model):
 			'target_id': self.target.id if self.target else None,
 			'account_id': self.account.id,
 			'tag_ids': [tag.id for tag in self.tags],
-			'raw_info': self.info
+			'raw_info': self.info,
+			'scheduled_id': self.scheduled_id
 		}
 
 

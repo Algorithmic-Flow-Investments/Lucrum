@@ -7,6 +7,7 @@ from database import db
 from models import Target, TargetString, Transaction, Tag
 from processing import process_transactions
 from processing.task_queue import EventManager
+from logging import warn, info
 
 
 def targets_list(query: MultiDict):
@@ -19,7 +20,7 @@ def get(target_id: int):
 
 
 def add(data: Dict):
-	print("Adding", data)
+	info("Adding target", data)
 	if Target.query.filter(Target.name == data['name']).first() is not None:
 		return abort(409)
 	target = Target(data['name'])
@@ -54,7 +55,7 @@ def delete(target_id: int):
 def update(target_id: int, data: Dict):
 	do_update = False
 	target = Target.query.filter_by(id=target_id).one()
-	print("Updating target", target.data_extra(), data)
+	info("Updating target", target.data_extra(), data)
 	target.name = data['name']
 	for string in data['strings']:
 		target_string = target.substrings.filter_by(id=string['id']).first()
@@ -76,10 +77,7 @@ def update(target_id: int, data: Dict):
 			if tag.id not in data['tag_ids']:
 				print("del", tag)
 				target.tags.remove(tag)
-	print("Done updating target", target.data_extra())
-	# if 'tags' in data:
-	# 	for tag in data['tags']:
-	# 		target.tags.append(Tag.query.filter_by(id=tag['id']).first())
+
 	EventManager.putTargetsUpdatedEvent([target])
 	db.session.commit()
 	if do_update:

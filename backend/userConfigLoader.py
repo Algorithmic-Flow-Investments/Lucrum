@@ -3,7 +3,7 @@ from logging import info
 from dateutil.parser import parse
 
 from database import db
-from models import BankLink, Account, Budget, Period, Category
+from models import BankLink, Account, Budget, Category
 from user_config import *
 
 
@@ -30,7 +30,7 @@ def load_accounts():
 def load_budgets():
 	info('Loading budgets...')
 	for budget in BUDGETS:
-		period = Period[budget['period'].upper()]
+		period = Budget.Period[budget['period'].upper()]
 		start = parse(budget['start'])
 		end = parse(budget['end']) if budget['end'] is not None else None
 

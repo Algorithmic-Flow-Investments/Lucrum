@@ -9,9 +9,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 import banking
 from database import db
+from models.base import BaseModel
 
 
-class BankLink(db.Model):
+class BankLink(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	bank = db.Column(db.String(80), nullable=False)
 	userID = db.Column(db.String(80), nullable=False)
@@ -40,7 +41,7 @@ class BankLink(db.Model):
 		questions: Dict[str, str] = pickle.loads(decrypt(db_password, self.questions))
 		questions = {k.strip("?"): v for k, v in questions.items()}
 		self.questions = encrypt(db_password, pickle.dumps(questions))
-		db.session.commit()
+		db.session.commit()  # TODO: No commit in model
 
 		accounts: Dict[str, Tuple] = {account.name: tuple(account.identifier.split('|')) for account in self.accounts}
 

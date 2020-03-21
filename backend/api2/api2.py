@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 
-from api2 import transactions, targets, methods, accounts, budgets, meta, tags, categories
+from api2 import transactions, targets, methods, accounts, budgets, meta, tags, categories, scheduled
 from processing.process_transactions import update_all
 from processing.task_queue import EventManager
 from server_data import populate_database
@@ -24,12 +24,10 @@ def transactions_stats() -> Response:
 
 @api.route('/transactions/stats/outgoings_graph')
 def transactions_outgoings_graph() -> Response:
-	return jsonify(transactions.graph(request.args)) \
- \
- \
-   @api.route('/transactions/stats/tags_categories')
+	return jsonify(transactions.graph(request.args))
 
 
+@api.route('/transactions/stats/tags_categories')
 def transactions_tags_categories() -> Response:
 	return jsonify(transactions.tags_categories(request.args))
 
@@ -48,6 +46,14 @@ def transactions_update(transaction_id) -> Response:
 def transactions_process() -> Response:
 	return jsonify(transactions.process(request.args))
 
+
+####
+# Scheduled
+####
+
+# @api.route('/scheduled/transactions/list')
+# def scheduled_transaction_list() -> Response:
+# 	return jsonify(scheduled.scheduled_transaction_list(request.args))
 
 ####
 # Targets

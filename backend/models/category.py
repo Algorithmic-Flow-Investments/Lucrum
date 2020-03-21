@@ -1,9 +1,10 @@
 from typing import Dict
 
 from database import db
+from models.base import BaseModel
 
 
-class Category(db.Model):
+class Category(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 	tags = db.relationship('Tag', backref='category')

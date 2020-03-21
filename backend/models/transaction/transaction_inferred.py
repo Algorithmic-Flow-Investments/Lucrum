@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING
 
 from database import db
+from models.base import BaseModel
 
 if TYPE_CHECKING:
 	from .transaction import Transaction
 
 
-class TransactionInferred(db.Model):
-	id = db.Column(db.Integer, db.ForeignKey("transaction.id"), primary_key=True)
+class TransactionInferred(BaseModel):
+	id = db.Column(db.Integer, db.ForeignKey("transaction.id", ondelete="CASCADE"), primary_key=True)
 	date = db.Column(db.DateTime)
 	reference = db.Column(db.Text)
 
@@ -23,7 +24,7 @@ class TransactionInferred(db.Model):
 		'join(Tag, target_tags.c.tag_id == Tag.id).join(Transaction, Transaction.target_id == Target.id)',
 		primaryjoin='TransactionInferred.id == Transaction.id')
 
-	def __init__(self, transaction: Transaction):
+	def __init__(self, transaction: "Transaction"):
 		# , date: datetime, reference: str, target: "Target", method: "Method"
 		self.id = transaction.id
 

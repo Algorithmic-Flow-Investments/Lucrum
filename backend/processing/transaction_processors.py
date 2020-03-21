@@ -1,16 +1,31 @@
-from dateutil.parser import parse
+from datetime import date, datetime
+
+from dateutil.parser import parse, ParserError
 
 from models import Transaction, MethodString, TargetString, Target
 
 
-def process_date(transaction):
-	old_value = transaction.data_inferred.date
-	raw = transaction.info.lower()  # type: str
-	if raw.find(' on '):
-		split = raw.split(' on ')
-		new_value = parse(split[-1])
+def process_date(transaction: Transaction):
+	old_value = transaction.date
+	raw = transaction.info.lower()
+	if raw.find(' on ') != -1:
+		split_on = raw.split(' on ')
+		date_string = split_on[-1]
+		date_string_split_space = date_string.split(" ", maxsplit=1)[0]
+		split_day_month = [s for s in date_string_split_space.split('-') if s != ""]
+		try:
+			if len(split_day_month[0]) == 4:
+				new_value = parse(date_string_split_space)
+			else:
+				new_value = parse(date_string_split_space, dayfirst=True)
+		except ParserError:
+			if len(split_day_month) == 2:
+				new_value = datetime(transaction.date.year, int(split_day_month[1]), int(split_day_month[0]))
+			else:
+				print("FAILED", raw)
+				return False
 		transaction.data_inferred.date = new_value
-		return old_value != new_value
+		return old_value != transaction.date
 	return False
 
 
@@ -21,8 +36,8 @@ def process_method(transaction: Transaction):
 		if raw.find(methodStr.string) != -1:
 			transaction.data_inferred.method_id = methodStr.parent.id
 			return transaction.method_id != old_value
-	transaction.data_inferred.method_id = None  # TODO: Manual clas
-	return False
+	transaction.data_inferred.method_id = None
+	return transaction.method_id != old_value
 
 
 def process_target(transaction: Transaction):
@@ -32,7 +47,7 @@ def process_target(transaction: Transaction):
 	if internal:
 		return different
 
-	raw = transaction.info.lower()  # type: str
+	raw = transaction.info.lower()
 	split = []
 	if raw.find('ref.') != -1:
 		split = raw.split('ref.', maxsplit=1)
@@ -44,7 +59,7 @@ def process_target(transaction: Transaction):
 		else:
 			split2 = split[1].split(',', maxsplit=1)
 		raw = split[0] + split2[-1]
-		transaction.data_auto.reference = split2[0]
+		transaction.data_inferred.reference = split2[0]
 
 	for targetStr in TargetString.query.all():
 		if raw.find(targetStr.string) != -1:
@@ -59,7 +74,7 @@ def process_target(transaction: Transaction):
 			return transaction.target_id != old_value
 
 	transaction.data_inferred.target_id = None  # TODO: Manual clas
-	return old_value is not None
+	return transaction.target_id != old_value
 
 
 def process_internal(transaction: Transaction):
@@ -74,4 +89,4 @@ def process_internal(transaction: Transaction):
 			mirrored_transaction.data_inferred.target_id = this_account_target.id
 			transaction.data_inferred.target_id = other_account_target.id
 			return True, transaction.target_id != old_value
-	return False, False
+	return False, transaction.target_id != old_value

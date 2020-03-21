@@ -1,9 +1,10 @@
 from typing import Dict
 
 from database import db
+from models.base import BaseModel
 
 
-class Target(db.Model):
+class Target(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 
@@ -47,11 +48,11 @@ class Target(db.Model):
 
 	@property
 	def transactions(self):
-		transaction = next(table for table in db.Model.__subclasses__() if table.__name__ == 'Transaction')
+		transaction = next(table for table in BaseModel.__subclasses__() if table.__name__ == 'Transaction')
 		return db.session.query(transaction).filter_by(target_id=self.id).all()
 
 
-class TargetString(db.Model):
+class TargetString(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	string = db.Column(db.Text, nullable=False)
 

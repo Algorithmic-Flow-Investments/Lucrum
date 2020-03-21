@@ -4,18 +4,19 @@ from datetime import date
 from sqlalchemy import func
 
 from database import db
+from models.base import BaseModel
 from models import Category, Transaction, Tag
 
 
-class Period(enum.Enum):
-	WEEK = 1
-	MONTH = 2
-
-
-class Budget(db.Model):
+class Budget(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 	total = db.Column(db.Float, nullable=True)
+
+	class Period(enum.Enum):
+		WEEK = 1
+		MONTH = 2
+
 	period = db.Column(db.Enum(Period), nullable=True)
 	startDate = db.Column(db.Date, nullable=True)
 	endDate = db.Column(db.Date, nullable=True)
@@ -43,11 +44,11 @@ class Budget(db.Model):
 		if start is None:
 			start = date.min
 		return Transaction.query \
-         .join(Transaction.tags, isouter=True) \
-         .join(Tag.category, isouter=True) \
-         .join(Category.budgets, isouter=True) \
-         .filter(Budget.id == self.id) \
-         .filter(Transaction.date >= start, Transaction.date <= self.endDate)
+                                 .join(Transaction.tags, isouter=True) \
+                                 .join(Tag.category, isouter=True) \
+                                 .join(Category.budgets, isouter=True) \
+                                 .filter(Budget.id == self.id) \
+                                 .filter(Transaction.date >= start, Transaction.date <= self.endDate)
 
 	@property
 	def per_day(self):
@@ -59,18 +60,18 @@ class Budget(db.Model):
 	def per_week(self):
 		if self.total is None:
 			return None
-		if self.period == Period.WEEK:
+		if self.period == Budget.Period.WEEK:
 			return self.total
-		if self.period == Period.MONTH:
+		if self.period == Budget.Period.MONTH:
 			return self.total * 12 / 52
 
 	@property
 	def per_month(self):
 		if self.total is None:
 			return None
-		if self.period == Period.WEEK:
+		if self.period == Budget.Period.WEEK:
 			return self.total * 52 / 12
-		if self.period == Period.MONTH:
+		if self.period == Budget.Period.MONTH:
 			return self.total
 
 	@property

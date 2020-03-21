@@ -1,19 +1,21 @@
-from sqlalchemy import select, join, outerjoin
+from sqlalchemy import select
 from werkzeug.datastructures import MultiDict
 
-from models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, target_tags, transaction_tags
-from models.transaction.transaction_inferred import TransactionInferred
-from app import create_app
+import app_basic
+from models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, TransactionImported, \
+ TransactionInferred, TransactionManual
 from database import db
 from datetime import datetime
 from api2 import transactions, meta
 import pytest
 
-app = create_app()
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///tests/database-test.db"
+from processing import transaction_processors
 
 
 def get_context(test_func):
+	app = app_basic.basic_app()
+	app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///tests/database-test.db"
+
 	def context_wrapper():
 		with app.app_context():
 			test_func()
@@ -41,6 +43,7 @@ def test_date():
 	account = Account("test-acc")
 
 	t1 = Transaction(account, 5, datetime(2020, 2, 3))
+	t1.process()
 	db.session.add(t1)
 	db.session.commit()
 
@@ -48,7 +51,7 @@ def test_date():
 	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 2, 3)
 
 	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020"
-	t1.process_date()
+	transaction_processors.process_date(t1)
 	db.session.commit()
 	assert t1.date == datetime(2020, 1, 31)
 	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 1, 31)
@@ -62,20 +65,22 @@ def test_date():
 @get_context
 def test_target():
 	account = Account("test-acc")
-
+	db.session.flush()
 	target1 = Target("Sains-test")
 	ts = TargetString(target1, "sainsburys")
-	db.session.add(target1)
+	db.session.add_all([account, target1])
+	db.session.flush()
 
 	t1 = Transaction(account, 5, datetime(2020, 2, 3),
 						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t1.process()
 	db.session.add(t1)
 	db.session.commit()
 
-	assert t1.target_id == target1.id
-	assert t1.target.id == target1.id
-	assert getSqlValue(Transaction.target_id, t1.id) == target1.id
-	assert len(target1.transactions) == 1
+	assert t1.target_id == target1.id, "target_id not correct"
+	assert t1.target.id == target1.id, "target.id not correct"
+	assert getSqlValue(Transaction.target_id, t1.id) == target1.id, "SQL target ID not correct"
+	assert len(target1.transactions) == 1, "Target has too many transactions"
 
 	target2 = Target("Sains-test-two")
 	db.session.add(target2)
@@ -99,6 +104,7 @@ def test_method():
 
 	t1 = Transaction(account, 5, datetime(2020, 2, 3),
 						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t1.process()
 	db.session.add(t1)
 	db.session.commit()
 
@@ -120,8 +126,11 @@ def test_method():
 @get_context
 def test_amount():
 	account = Account("test-acc")
+	db.session.add(account)
+	db.session.flush()
 	t1 = Transaction(account, 5, datetime(2020, 2, 3),
 						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t1.process()
 	db.session.add(t1)
 	db.session.commit()
 	assert t1.amount == 5
@@ -136,15 +145,16 @@ def test_amount():
 @get_context
 def test_tags():
 	account = Account("test-acc")
-
 	target1 = Target("Sains-test")
 	ts = TargetString(target1, "sainsburys")
 	tag1 = Tag("tag1")
 	target1.tags.append(tag1)
-	db.session.add(target1)
 
+	db.session.add_all([account, target1])
+	db.session.flush()
 	t1 = Transaction(account, 5, datetime(2020, 2, 3),
 						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t1.process()
 	db.session.add(t1)
 
 	t2 = Transaction(account, 8, datetime(2020, 2, 4), None)
@@ -184,8 +194,8 @@ def test_tags():
 def test_api():
 	account = Account("test-acc")
 	account2 = Account("test-bank")
-	db.session.add(account2)
-
+	db.session.add_all([account, account2])
+	db.session.flush()
 	target1 = Target("Sains-test")
 	ts = TargetString(target1, "sainsburys")
 	tag1 = Tag("tag1")
@@ -195,10 +205,12 @@ def test_api():
 	ts2 = TargetString(account2.target, "bank")
 
 	t1 = Transaction(account, 5, datetime(2020, 2, 3), "CARD PAYMENT TO bank,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t1.process()
 	db.session.add(t1)
 
 	t2 = Transaction(account, 8, datetime(2020, 2, 3),
 						"CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+	t2.process()
 	db.session.add(t2)
 
 	db.session.commit()
@@ -218,9 +230,35 @@ def test_api():
 	assert mstats['transactions'] == 2
 
 
-if __name__ == "__main__":
-	with app.app_context():
-		db.reflect()
-		db.drop_all()
-		db.create_all()
-		test_api()
+@get_context
+def test_deletion():
+	account = Account("test-acc")
+	db.session.add(account)
+	db.session.flush()
+	ts = [
+		Transaction(account, t, datetime(2020, 2, 3), "CARD PAYMENT TO bank,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
+		for t in range(5)
+	]
+	db.session.add_all(ts)
+	db.session.commit()
+
+	def _check_all(expected):
+		assert [t.id for t in Transaction.query.all()] == expected
+		assert [t.id for t in TransactionImported.query.all()] == expected
+		assert [t.id for t in TransactionInferred.query.all()] == expected
+		assert [t.id for t in TransactionManual.query.all()] == expected
+
+	_check_all([1, 2, 3, 4, 5])
+
+	db.session.delete(Transaction.query.first())
+	db.session.commit()
+
+	_check_all([2, 3, 4, 5])
+
+	Transaction.query.filter(Transaction.id == 2).delete()
+	db.session.commit()
+
+	_check_all([3, 4, 5])
+
+	db.session.delete(TransactionInferred.query.first())
+	db.session.commit()

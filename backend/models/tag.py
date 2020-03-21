@@ -1,10 +1,11 @@
 from typing import Dict
 
 from database import db
+from models.base import BaseModel
 from models.target import Target
 
 
-class Tag(db.Model):
+class Tag(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 	targets = db.relationship('Target', secondary='target_tags')
