@@ -1,26 +1,16 @@
 from sqlalchemy import select
 from werkzeug.datastructures import MultiDict
 
-import app_basic
-from models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, TransactionImported, \
+from lucrum.app_basic import basic_app
+from lucrum.models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, TransactionImported, \
  TransactionInferred, TransactionManual
-from database import db
+from lucrum.database import db
 from datetime import datetime
-from api2 import transactions, meta
+from lucrum.api2 import transactions, meta
 import pytest
+from .common import get_context
 
-from processing import transaction_processors
-
-
-def get_context(test_func):
-	app = app_basic.basic_app()
-	app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///tests/database-test.db"
-
-	def context_wrapper():
-		with app.app_context():
-			test_func()
-
-	return context_wrapper
+from lucrum.processing import transaction_processors
 
 
 @pytest.fixture(scope='function', autouse=True)

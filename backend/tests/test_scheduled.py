@@ -1,19 +1,9 @@
-from models import Account, Target, ScheduledTransaction
-from database import db
+from lucrum.models import Account, Target, ScheduledTransaction
+from lucrum.database import db
 from datetime import datetime
 import pytest
 
-from app_basic import basic_app
-app = basic_app()
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///tests/database-test.db"
-
-
-def get_context(test_func):
-	def context_wrapper():
-		with app.app_context():
-			test_func()
-
-	return context_wrapper
+from .common import get_context
 
 
 @pytest.fixture(scope='function', autouse=True)
