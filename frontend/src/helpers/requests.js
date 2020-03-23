@@ -1,4 +1,4 @@
-export const api = "http://0.0.0.0:5000/api/v2/"; // The API address
+export const api = "http://0.0.0.0:5000/api/"; // The API address
 var axios = require("axios")
 
 import Vue from 'vue';

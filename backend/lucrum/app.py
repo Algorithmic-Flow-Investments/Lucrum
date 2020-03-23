@@ -25,7 +25,7 @@ def create_app():
 
 	db.init_app(app)
 
-	from lucrum.api2 import api
+	from lucrum.api import api
 	app.register_blueprint(api)
 
 	from lucrum.banking2.plaid import plaid_setup

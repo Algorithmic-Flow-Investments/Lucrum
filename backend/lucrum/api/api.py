@@ -6,7 +6,7 @@ from ..processing.process_transactions import update_all
 from ..processing.task_queue import EventManager
 # from ..server_data import populate_database
 
-api = Blueprint('api2', __name__, url_prefix='/api/v2')
+api = Blueprint('api', __name__, url_prefix='/api')
 
 ####
 # Transactions
