@@ -1,6 +1,3 @@
-from sqlalchemy import func, select
-
-from lucrum.models.account.account_connection import ConnectionType, AccountConnectionUser
 from .common import get_context, get_sql_value
 import pytest
 from lucrum.database import db
@@ -72,6 +69,7 @@ def test_inferred_balance():
 
 @get_context
 def plaid_fetch():
+	from lucrum.models.account.account_connection import ConnectionType, AccountConnectionUser
 	con_user = AccountConnectionUser(ConnectionType.PLAID, "santander",
 										"access-development-c39a39dd-2bde-4084-8dc6-02a99d217f22")
 	db.session.add(con_user)

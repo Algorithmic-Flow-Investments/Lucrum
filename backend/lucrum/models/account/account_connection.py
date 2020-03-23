@@ -4,7 +4,10 @@ from typing import List
 from ..base import BaseModel
 from ...database import db
 from enum import Enum
-from ...banking2.plaid import plaid_api
+try:
+	from ...banking2.plaid import plaid_api
+except ImportError:
+	print("This should only be thrown during testing")
 
 
 class ConnectionType(Enum):

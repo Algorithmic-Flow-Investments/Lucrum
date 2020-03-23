@@ -4,7 +4,7 @@ from lucrum.models import Account, Transaction, Target, TargetString, MethodStri
  TransactionInferred, TransactionManual
 from lucrum.database import db
 from datetime import datetime
-from lucrum.api2 import transactions, meta
+from lucrum.api import transactions, meta
 import pytest
 
 from .common import get_context, get_sql_value
