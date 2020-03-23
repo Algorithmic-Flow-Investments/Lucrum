@@ -19,7 +19,7 @@ def test_balance():
 	acc1.add_balance(10, datetime(2020, 1, 1))
 	acc1.add_balance(15, datetime(2020, 1, 6))
 	acc1.add_balance(20, datetime(2020, 1, 4))
-	db.session.flush()
+	db.session.commit()
 
 	assert acc1.balance == 15
 	assert get_sql_value(Account.balance, acc1.id, Account) == 15
