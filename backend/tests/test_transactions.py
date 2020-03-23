@@ -1,14 +1,13 @@
-from sqlalchemy import select
 from werkzeug.datastructures import MultiDict
 
-from lucrum.app_basic import basic_app
 from lucrum.models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, TransactionImported, \
  TransactionInferred, TransactionManual
 from lucrum.database import db
 from datetime import datetime
 from lucrum.api2 import transactions, meta
 import pytest
-from .common import get_context
+
+from .common import get_context, get_sql_value
 
 from lucrum.processing import transaction_processors
 
@@ -21,13 +20,6 @@ def build_test_db():
 	db.create_all()
 
 
-def getSqlValue(sel, transaction_id):
-	sql_stat = select([sel]).where(Transaction.id == transaction_id)
-	sql_exec = db.session.get_bind().execute(sql_stat)
-	fetch = sql_exec.fetchall()
-	return fetch[0][0]
-
-
 @get_context
 def test_date():
 	account = Account("test-acc")
@@ -38,18 +30,18 @@ def test_date():
 	db.session.commit()
 
 	assert t1.date == datetime(2020, 2, 3)
-	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 2, 3)
+	assert get_sql_value(Transaction.date, t1.id) == datetime(2020, 2, 3)
 
 	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2020"
 	transaction_processors.process_date(t1)
 	db.session.commit()
 	assert t1.date == datetime(2020, 1, 31)
-	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 1, 31)
+	assert get_sql_value(Transaction.date, t1.id) == datetime(2020, 1, 31)
 
 	t1.data_manual.date = datetime(2020, 4, 3)
 	db.session.commit()
 	assert t1.date == datetime(2020, 4, 3)
-	assert getSqlValue(Transaction.date, t1.id) == datetime(2020, 4, 3)
+	assert get_sql_value(Transaction.date, t1.id) == datetime(2020, 4, 3)
 
 
 @get_context
@@ -69,7 +61,7 @@ def test_target():
 
 	assert t1.target_id == target1.id, "target_id not correct"
 	assert t1.target.id == target1.id, "target.id not correct"
-	assert getSqlValue(Transaction.target_id, t1.id) == target1.id, "SQL target ID not correct"
+	assert get_sql_value(Transaction.target_id, t1.id) == target1.id, "SQL target ID not correct"
 	assert len(target1.transactions) == 1, "Target has too many transactions"
 
 	target2 = Target("Sains-test-two")
@@ -80,7 +72,7 @@ def test_target():
 
 	assert t1.target_id == target2.id
 	assert t1.target.id == target2.id
-	assert getSqlValue(Transaction.target_id, t1.id) == target2.id
+	assert get_sql_value(Transaction.target_id, t1.id) == target2.id
 
 
 @get_context
@@ -100,7 +92,7 @@ def test_method():
 
 	assert t1.method_id == method1.id
 	assert t1.method.id == method1.id
-	assert getSqlValue(Transaction.method_id, t1.id) == method1.id
+	assert get_sql_value(Transaction.method_id, t1.id) == method1.id
 
 	method2 = Method("Card payment test two")
 	db.session.add(method2)
@@ -110,7 +102,7 @@ def test_method():
 
 	assert t1.method_id == method2.id
 	assert t1.method.id == method2.id
-	assert getSqlValue(Transaction.method_id, t1.id) == method2.id
+	assert get_sql_value(Transaction.method_id, t1.id) == method2.id
 
 
 @get_context
@@ -124,12 +116,12 @@ def test_amount():
 	db.session.add(t1)
 	db.session.commit()
 	assert t1.amount == 5
-	assert getSqlValue(Transaction.amount, t1.id) == 5
+	assert get_sql_value(Transaction.amount, t1.id) == 5
 
 	t1.data_manual.amount = 10
 	db.session.commit()
 	assert t1.amount == 10
-	assert getSqlValue(Transaction.amount, t1.id) == 10
+	assert get_sql_value(Transaction.amount, t1.id) == 10
 
 
 @get_context

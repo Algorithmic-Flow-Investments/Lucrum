@@ -8,11 +8,11 @@ export default class Account {
 	unpack(data) {
 		this.id = data.id;
 		this.name = data.name || "";
-		this.amount = data.amount || 0;
+		this.balance = data.balance || 0;
 		this.description = data.description || "";
 		this.usages = data.usages || [];
 		this.balance_graph = data.balance_graph || {};
-		this.calculated_balance = data.calculated_balance || this.amount;
+		this.calculated_balance = data.calculated_balance || this.balance;
 	}
 
 	fetch() {

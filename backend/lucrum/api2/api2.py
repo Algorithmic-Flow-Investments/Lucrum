@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 
+from ..processing.fetch_data import fetch_balances
 from . import transactions, targets, methods, accounts, budgets, meta, tags, categories, scheduled
 from ..processing.process_transactions import update_all
 from ..processing.task_queue import EventManager
-from ..server_data import populate_database
+# from ..server_data import populate_database
 
 api = Blueprint('api2', __name__, url_prefix='/api/v2')
 
@@ -162,7 +163,7 @@ def meta_stats() -> Response:
 
 @api.route('/meta/populate', methods=['POST'])
 def populate() -> Response:
-	populate_database(True, False)
+	fetch_balances()
 	return jsonify()
 
 

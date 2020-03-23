@@ -1,7 +1,7 @@
 <template>
 	<div class="sect">
 		<proportional-header :title="title" :total="total" :chart="chart"></proportional-header>
-		<segment v-for="(item, i) in items" :title="item.name" :subtitle="item.description" :amount="item.amount" :colour="'seg-' + (i % 4 + 1)" :key="item.id"></segment>
+		<segment v-for="(item, i) in items" :title="item.name" :subtitle="item.description" :amount="item.balance" :colour="'seg-' + (i % 4 + 1)" :key="item.id"></segment>
 	</div>
 </template>
 

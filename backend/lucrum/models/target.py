@@ -1,6 +1,6 @@
 from typing import Dict
 
-from ..database import db
+from lucrum.database import db
 from .base import BaseModel
 
 

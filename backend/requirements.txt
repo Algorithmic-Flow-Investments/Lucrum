@@ -18,3 +18,4 @@ Flask-Migrate
 flask_script
 pytest
 sqlalchemy-stubs
+plaid-python

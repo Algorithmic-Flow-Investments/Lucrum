@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
-from database import db
-from models import *
+from lucrum.database import db
+from lucrum.models import *
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'

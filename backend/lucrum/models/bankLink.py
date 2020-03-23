@@ -62,7 +62,7 @@ class BankLink(BaseModel):
 			for account in user.accounts:
 				data[account.name] = {
 					'balance': account.get_balance(),
-					'transactions': account.get_transactions(from_date, to_date)
+					'transactions': account.update_transactions(from_date, to_date)
 				}
 				time.sleep(2)
 
