@@ -1,5 +1,5 @@
 import enum
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import func
 
@@ -22,7 +22,12 @@ class Budget(BaseModel):
 	endDate = db.Column(db.Date, nullable=True)
 	categories = db.relationship('Category', secondary='budget_categories')
 
-	def __init__(self, name, total=None, start=None, end=date.max, period=None):
+	def __init__(self,
+					name: str,
+					total: float = None,
+					start: datetime = None,
+					end: datetime = date.max,
+					period: Period = None):
 		self.name = name
 		self.total = total
 		self.period = period
@@ -44,11 +49,11 @@ class Budget(BaseModel):
 		if start is None:
 			start = date.min
 		return Transaction.query \
-                                             .join(Transaction.tags, isouter=True) \
-                                             .join(Tag.category, isouter=True) \
-                                             .join(Category.budgets, isouter=True) \
-                                             .filter(Budget.id == self.id) \
-                                             .filter(Transaction.date >= start, Transaction.date <= self.endDate)
+                                                   .join(Transaction.tags, isouter=True) \
+                                                   .join(Tag.category, isouter=True) \
+                                                   .join(Category.budgets, isouter=True) \
+                                                   .filter(Budget.id == self.id) \
+                                                   .filter(Transaction.date >= start, Transaction.date <= self.endDate)
 
 	@property
 	def per_day(self):

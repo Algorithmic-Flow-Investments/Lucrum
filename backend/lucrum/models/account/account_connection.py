@@ -39,7 +39,16 @@ class AccountConnection(BaseModel):
 
 	identifier = db.Column(db.String)
 
-	def __init__(self, account: "Account", update_type: ConnectionType, bank: str, identifier: str):
+	balance_enabled = db.Column(db.Boolean)
+	transactions_enabled = db.Column(db.Boolean)
+
+	def __init__(self,
+					account: "Account",
+					update_type: ConnectionType,
+					bank: str,
+					identifier: str,
+					balance_enabled: bool = True,
+					transactions_enabled: bool = True):
 		self.account = account
 		self.connection_type = update_type
 		self.bank = bank
@@ -48,47 +57,62 @@ class AccountConnection(BaseModel):
 			AccountConnectionUser.bank == self.bank,
 			AccountConnectionUser.connection_type == self.connection_type).first()
 
+		self.balance_enabled = balance_enabled
+		self.transactions_enabled = transactions_enabled
+
 	def update_balance(self, balance: float) -> float:
 		return self.account.add_balance(balance, datetime.now()).balance
 
 	def add_transaction(self, amount, date, info, import_datetime) -> Optional[Transaction]:
 		return self.account.add_transaction(amount, date, info, import_datetime)
 
+	def add_balance(self, balance):
+		return self.account.add_balance(balance, datetime.now())
+
 
 class AccountConnectionUser(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 
+	# TODO: Replace key with composite key
 	token = db.Column(db.String)
 	bank = db.Column(db.String)
 	connection_type = db.Column(db.Enum(ConnectionType))
 
-	balance_enabled = db.Column(db.Boolean)
-	transactions_enabled = db.Column(db.Boolean)
-
-	def __init__(self, connection_type, bank, token, balance_enabled: bool = True, transactions_enabled: bool = True):
-		if type(token) == dict:
-			token = dumps(token, 0).decode()
-		self.token = token
+	def __init__(self, connection_type, bank, token):
+		self.set_token(token)
 		self.connection_type = connection_type
 		self.bank = bank
 
-		self.balance_enabled = balance_enabled
-		self.transactions_enabled = transactions_enabled
+	def set_token(self, token):
+		if type(token) == dict:
+			token = dumps(token, 0).decode()
+		self.token = token
 
 	def update_balances(self):
+		if not any([con.balance_enabled for con in self.connections]):
+			return
 		if self.connection_type == ConnectionType.PLAID:
 			all_balances = plaid_api.get_balance(self.token)
-			print("AGB")
 			connection: AccountConnection
 			for connection in self.connections:
 				account = next((b for b in all_balances if b['account_id'] == connection.identifier), None)
 				if account is not None:
 					connection.update_balance(account['balances']['current'])
+		if self.connection_type == ConnectionType.SCRAPE:
+			token = loads(self.token.encode())
+			scraper = new_scraper(self.bank, token)
+			scraper.login()
+			con: AccountConnection
+			for con in self.connections:
+				balance = scraper.get_balance(con.identifier)
+				con.add_balance(balance)
 
 	def update_transactions(self,
 							start_date: datetime = None,
 							end_date: datetime = None,
 							latest=False) -> List[Transaction]:
+		if not any([con.transactions_enabled for con in self.connections]):
+			return []
 
 		if start_date is None:
 			start_date = datetime(1970, 1, 1)

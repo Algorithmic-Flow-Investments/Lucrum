@@ -21,7 +21,7 @@ class Scraper:
 		pass
 
 	@abc.abstractmethod
-	def get_balance(self) -> float:
+	def get_balance(self, identifier: str) -> float:
 		pass
 
 	@abc.abstractmethod

@@ -14,9 +14,9 @@ from time import sleep
 class Santander(Scraper):
 	def __init__(self, token: dict):
 		super().__init__(token)
-		self.personal_id = token['userid']
+		self.personal_id = token['personal_id']
 		self.password = token['password']
-		self.security_number = token['passcode']
+		self.security_number = token['security_number']
 		self.questions = token['questions']
 
 	def login(self):
@@ -69,6 +69,21 @@ class Santander(Scraper):
 
 	def go_home(self):
 		self.driver.get('https://retail.santander.co.uk/EBAN_Accounts_ENS/channel.ssobto?dse_operationName=MyAccounts')
+
+	def get_balance(self, identifier: str) -> float:
+		driver = self.driver
+
+		# Go to the accounts page
+		self.go_home()
+		accounts = (driver.find_element_by_css_selector('.accountlist').find_elements_by_css_selector('li .info'))
+		account_map = {acc.find_element_by_css_selector('.number').text: acc for acc in accounts}
+
+		# choose our account
+		acc = account_map[identifier]
+		accp = acc.find_element_by_xpath('..')
+		amount = accp.find_element_by_class_name('amount').get_attribute('innerHTML')
+
+		return float(amount.replace('£', '').replace(',', ''))
 
 	def get_transactions(self, identifier: str, start_date: datetime, end_date: datetime) -> List[dict]:
 		lowest_date = datetime.today() - timedelta(days=365 * 7)

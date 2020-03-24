@@ -72,8 +72,13 @@ class Account(BaseModel):
 		else:
 			return None
 
-	def add_connection(self, update_type: ConnectionType, bank, identifier):
-		connection = AccountConnection(self, update_type, bank, identifier)
+	def add_connection(self,
+						connection_type: ConnectionType,
+						bank,
+						identifier,
+						balance_enabled=True,
+						transactions_enabled=True):
+		connection = AccountConnection(self, connection_type, bank, identifier, balance_enabled, transactions_enabled)
 		db.session.add(connection)
 		return connection
 
