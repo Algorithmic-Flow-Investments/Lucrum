@@ -164,7 +164,27 @@ class Transaction(BaseModel):
 																		self.tags)
 
 	def data_extra(self):
-		return dict(self.data_basic(), **{'real_amount': self.amount, 'method_id': self.method_id})
+		return dict(
+			self.data_basic(), **{
+				'amount_extra': {
+					'imported': self.data_imported.amount,
+					'manual': self.data_manual.amount
+				},
+				'method_id': self.method_id,
+				'method_id_extra': {
+					'inferred': self.data_inferred.method_id,
+					'manual': self.data_manual.method_id
+				},
+				'target_id_extra': {
+					'inferred': self.data_inferred.target_id,
+					'manual': self.data_manual.target_id
+				},
+				'date_extra': {
+					'imported': self.data_imported.date,
+					'inferred': self.data_inferred.date,
+					'manual': self.data_manual.date
+				}
+			})
 
 	def data_basic(self):
 		return {
@@ -177,22 +197,3 @@ class Transaction(BaseModel):
 			'raw_info': self.info,
 			'scheduled_id': self.scheduled_id
 		}
-
-
-# Transaction.target = db.relationship(Target,
-# 										viewonly=True,
-# 										uselist=False,
-# 										secondary=Transaction,
-# 										primaryjoin=foreign(Transaction.target_id) == remote(Target.id))
-
-# s = select([Target]).join(Transaction, Transaction.id == Target.id)
-# print(s)
-# m = mapper(Target, s, non_primary=True)
-#
-# print(m)
-
-# Transaction.target = db.relationship(Target,
-# 										viewonly=True,
-# 										uselist=False,
-# 										primaryjoin=foreign(Transaction.target_id) == remote(Target.id),
-# 										foreign_keys=[Transaction.target_id])
