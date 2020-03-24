@@ -3,7 +3,9 @@
 				   :transaction="transaction"
 				   :saving="saving"
 				   @new="newTarget"
-				   @close="close"></target-select>
+				   @close="close"
+				   @close-edit="closeEdit"
+	></target-select>
 	<target-edit v-else-if="state === 'edit'"
 				 :transaction="transaction"
 				 :saving="saving"
@@ -59,6 +61,9 @@
 			// },
 			close() {
 				this.$emit('close')
+			},
+			closeEdit() {
+				this.state = 'edit'
 			}
 		}
 	};

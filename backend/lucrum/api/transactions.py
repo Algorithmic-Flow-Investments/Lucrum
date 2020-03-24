@@ -7,7 +7,7 @@ from .transactions_common import transactions_find, filter_budget, \
 from ..database import db
 from lucrum.models import Transaction, Category, Tag
 from typing import Dict
-from ..processing.process_transactions import update_transactions_list
+from ..processing.process_transactions import process_transactions_list
 from ..utils import date_range
 
 
@@ -128,7 +128,7 @@ def process(query: MultiDict):
 	min_date = parse(query.get('min', '1970-01-01'))
 	max_date = parse(query.get('max', '2100-01-01'))
 	transactions = Transaction.query.filter(Transaction.date >= min_date, Transaction.date <= max_date).all()
-	update_transactions_list(transactions, True)
+	process_transactions_list(transactions, True)
 	return "PENDING"
 
 

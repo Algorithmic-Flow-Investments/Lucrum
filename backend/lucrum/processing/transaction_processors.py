@@ -13,7 +13,7 @@ def process_date(transaction: Transaction):
 		date_string = split_on[-1]
 		date_string_split_space = date_string.split(" ", maxsplit=1)[0]
 		split_day_month = [s for s in date_string_split_space.split('-') if s != ""]
-		try:
+		try:  # TODO: Maybe if the year is only 20 do some extra shenanigans - or just ignore
 			if len(split_day_month[0]) == 4:
 				new_value = parse(date_string_split_space)
 			else:

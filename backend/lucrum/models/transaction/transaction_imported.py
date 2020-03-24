@@ -14,8 +14,11 @@ class TransactionImported(BaseModel):
 	date = db.Column(db.DateTime, nullable=False)
 	info = db.Column(db.Text, nullable=True)
 
-	def __init__(self, transaction: "Transaction", amount: float, date: datetime, info: str):
+	import_date = db.Column(db.DateTime)
+
+	def __init__(self, transaction: "Transaction", amount: float, date: datetime, info: str, import_date: datetime):
 		self.id = transaction.id
 		self.amount = amount
 		self.date = date
 		self.info = info
+		self.import_date = import_date

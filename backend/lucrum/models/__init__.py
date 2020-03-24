@@ -1,5 +1,4 @@
 from .account import *
-from .bankLink import BankLink
 from .method import Method, MethodString
 from .scheduled import ScheduledTransaction
 from .tag import Tag

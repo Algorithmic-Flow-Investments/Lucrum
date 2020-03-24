@@ -1,4 +1,4 @@
-from .common import get_context, get_sql_value
+from tests.common import get_context, get_sql_value
 import pytest
 from lucrum.database import db
 from lucrum.models import Account, Transaction
@@ -68,6 +68,40 @@ def test_inferred_balance():
 
 
 @get_context
+def test_duplicate_import():
+	acc1 = Account("test-santander")
+	acc2 = Account("test-other")
+	db.session.add_all([acc1, acc2])
+	db.session.flush()
+	t1 = acc1.add_transaction(5, datetime(2020, 1, 1), "test123")
+
+	assert t1 is not None and t1.info == "test123"
+
+	t2 = acc1.add_transaction(5, datetime(2020, 1, 1), "test123")
+
+	assert t2 is None
+
+	ts = [
+		acc1.add_transaction(5, datetime(2020, 1, 1), "test1234"),
+		acc1.add_transaction(6, datetime(2020, 1, 1), "test123"),
+		acc1.add_transaction(5, datetime(2020, 1, 2), "test123"),
+	]
+
+	assert ts[0] is not None and ts[0].info == "test1234"
+	assert ts[1] is not None and ts[1].amount == 6
+	assert ts[2] is not None and ts[2].date.day == 2
+
+	t3 = acc2.add_transaction(5, datetime(2020, 1, 1), "test123")
+	assert t3 is not None and t3.info == "test123"
+
+	now = datetime.now()
+
+	t4 = acc1.add_transaction(5, datetime(2020, 1, 1), "abc456", now)
+	t5 = acc1.add_transaction(5, datetime(2020, 1, 1), "abc456", now)
+	assert t4 is not None and t5 is not None and t4.info == t5.info
+
+
+@get_context
 def plaid_fetch():
 	from lucrum.models.account.account_connection import ConnectionType, AccountConnectionUser
 	con_user = AccountConnectionUser(ConnectionType.PLAID, "santander",
@@ -86,3 +120,7 @@ def plaid_fetch():
 	transactions = con_user.update_transactions(datetime(1970, 1, 1), datetime.now())
 	print(transactions)
 	print(len(transactions))
+
+
+if __name__ == "__main__":
+	plaid_fetch()

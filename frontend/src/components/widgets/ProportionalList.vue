@@ -16,12 +16,12 @@ export default {
 	computed: {
 		total() {
 			return this.items.reduce((total, item) => {
-				return total += item.amount
+				return total += item.balance
 			}, 0)
 		},
 		chart() {
 			return this.items.map((item, i) => {
-				return [item.amount / this.total * 100, 'seg-' + (i % 4 + 1)]
+				return [item.balance / this.total * 100, 'seg-' + (i % 4 + 1)]
 			})
 		}
 	}

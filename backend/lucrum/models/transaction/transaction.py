@@ -37,10 +37,12 @@ class Transaction(BaseModel):
 	# parent_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
 	# linked_transactions = db.relationship('Transaction', backref=db.backref('parent_transaction', remote_side=[id]))
 
-	def __init__(self, account, amount: float, date: datetime, info=None):
+	def __init__(self, account, amount: float, date: datetime, info=None, import_date=None):
+		if import_date is None:
+			import_date = datetime.now()
 		self.account = account
 
-		self.data_imported = TransactionImported(self, amount, date, info)
+		self.data_imported = TransactionImported(self, amount, date, info, import_date)
 		self.data_inferred = TransactionInferred(self)
 		self.data_manual = TransactionManual(self)
 

@@ -25,7 +25,7 @@ class ProgressTracker:
 			sleep(delay)
 			countdown -= 1
 			if countdown <= 0 and timeout > -1:
-				warn("Process tracker timed out", self.progress)
+				warn(f"Process tracker timed out {self.progress}")
 				raise TimeoutError()
 		return self.updated
 
@@ -47,23 +47,26 @@ class ProgressTracker:
 		info(f"Update progress: {round(self.progress.value * 100)}", )
 
 
-def update_all(threaded: bool = True) -> ProgressTracker:
+# TODO: Refactor all this crap
+
+
+def process_all(threaded: bool = True) -> ProgressTracker:
 	info("Updating all transactions...")
 	tracker = ProgressTracker()
 	if threaded:
-		p = Process(target=_update_all, args=(tracker, ))
+		p = Process(target=_process_all, args=(tracker, ))
 		p.start()
 	else:
-		_update_all(tracker)
+		_process_all(tracker)
 	return tracker
 
 
-def _update_all(tracker: ProgressTracker):
+def _process_all(tracker: ProgressTracker):
 	with basic_app().app_context():
 		db.reflect()
 		pages = Transaction.query.paginate(0, 100, False).pages
 	for i in range(pages + 1):
-		tracker.add_updated(update_transactions(i, 100))
+		tracker.add_updated(process_transactions_paginated(i, 100))
 		tracker.set_progress(i / pages)
 	info("Updated all transaction")
 	with basic_app().app_context():
@@ -71,14 +74,14 @@ def _update_all(tracker: ProgressTracker):
 		info(f"Transactions updated: {updated}")
 
 
-def update_transactions(page=0, per_page=100):
+def process_transactions_paginated(page=0, per_page=100):
 	with basic_app().app_context():
 		transactions = Transaction.query.paginate(page, per_page, False).items
-		updated = update_transactions_list(transactions)
+		updated = process_transactions_list(transactions)
 	return updated
 
 
-def update_transactions_list(transactions: List[Transaction], standalone: bool = False) -> List[int]:
+def process_transactions_list(transactions: List[Transaction], standalone: bool = False) -> List[int]:
 	updated: List[int] = []
 	for transaction in transactions:
 		changed = process_transaction(transaction)
@@ -100,4 +103,4 @@ def process_transaction(transaction: Transaction):
 
 
 if __name__ == "__main__":
-	update_all()
+	process_all()

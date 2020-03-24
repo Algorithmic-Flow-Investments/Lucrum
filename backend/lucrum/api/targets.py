@@ -40,7 +40,7 @@ def add(data: Dict):
 	db.session.flush()
 	EventManager.putTargetsUpdatedEvent([target])
 	db.session.commit()
-	process_transactions.update_all()
+	process_transactions.process_all()
 	return target.data_extra()
 
 
@@ -55,7 +55,7 @@ def delete(target_id: int):
 def update(target_id: int, data: Dict):
 	do_update = False
 	target = Target.query.filter_by(id=target_id).one()
-	info("Updating target", target.data_extra(), data)
+	info(f"Updating target {target.data_extra()}, {data}")
 	target.name = data['name']
 	for string in data['strings']:
 		target_string = target.substrings.filter_by(id=string['id']).first()
@@ -81,6 +81,6 @@ def update(target_id: int, data: Dict):
 	EventManager.putTargetsUpdatedEvent([target])
 	db.session.commit()
 	if do_update:
-		process_transactions.update_all()
+		process_transactions.process_all()
 	target = Target.query.filter_by(id=target_id).one()
 	return target.data_extra()

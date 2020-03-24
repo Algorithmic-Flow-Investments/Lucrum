@@ -17,6 +17,7 @@
 		<footer class="modal-card-foot">
 			<b-button type="button" @click="$emit('close')">Close</b-button>
 			<b-button type="is-primary" @click="save()" :disabled="selectedTarget === null" :loading="saving">Save</b-button>
+			<b-button type="is-primary" @click="saveEdit()" :disabled="selectedTarget === null" :loading="saving">Save & Edit</b-button>
 		</footer>
 	</div>
 </template>
@@ -27,18 +28,29 @@
 	export default {
 		name: "TargetSelect",
 		components: { Multiselect },
-		props: ['saving', 'transaction'],
+		props: ['transaction'],
 		data() {
 			return {
 				selectedTarget: null,
+				saving: false
 			}
 		},
 		methods: {
 			save() {
 				this.transaction.target_id = this.selectedTarget.id
 				this.transaction.manual_target = true
-				this.transaction.commit()
-				this.$emit('close')
+				this.transaction.commit().finally(() => {
+					this.saving = false;
+					this.$emit('close')
+				})
+			},
+			saveEdit() {
+				this.transaction.target_id = this.selectedTarget.id
+				this.transaction.manual_target = true
+				this.transaction.commit().finally(() => {
+					this.saving = false;
+					this.$emit('close-edit')
+				})
 			}
 		}
 	};

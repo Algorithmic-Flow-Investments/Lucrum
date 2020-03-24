@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -7,7 +7,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from lucrum.database import db
 from ..base import BaseModel
 from ..target import Target
-from ..transaction import Transaction
+from ..transaction import Transaction, TransactionImported
 from ...utils import date_range
 from .account_balance import AccountBalance
 from .account_connection import AccountConnection, ConnectionType
@@ -44,11 +44,12 @@ class Account(BaseModel):
 	# Balance
 	@hybrid_property
 	def balance(self):
-		latest_balance = AccountBalance.query.filter(AccountBalance.account_id == self.id).order_by(
-			AccountBalance.date.desc()).first()
-		if latest_balance is None:
-			return 0
-		return latest_balance.balance
+		# latest_balance = AccountBalance.query.filter(AccountBalance.account_id == self.id).order_by(
+		# 	AccountBalance.date.desc()).first()
+		# if latest_balance is None:
+		# 	return 0
+		# return latest_balance.balance
+		return self.inferred_balance()
 
 	# noinspection PyMethodParameters
 	@balance.expression
@@ -56,10 +57,20 @@ class Account(BaseModel):
 		return select([AccountBalance.balance]).where(cls.id == AccountBalance.account_id).order_by(
 			AccountBalance.date.desc()).limit(1).as_scalar()
 
-	def add_transaction(self, amount: float, date: datetime, info: str):
-		transaction = Transaction(self, amount, date, info)
-		db.session.add(transaction)
-		return transaction
+	def add_transaction(self,
+						amount: float,
+						date: datetime,
+						info: str,
+						import_date: datetime = None) -> Optional[Transaction]:
+		if TransactionImported.query.join(Transaction).filter(
+			Transaction.id == TransactionImported.id, Transaction.account_id == self.id,
+			TransactionImported.info == info, TransactionImported.amount == amount, TransactionImported.date == date,
+			TransactionImported.import_date != import_date).first() is None:
+			transaction = Transaction(self, amount, date, info, import_date)
+			db.session.add(transaction)
+			return transaction
+		else:
+			return None
 
 	def add_connection(self, update_type: ConnectionType, bank, identifier):
 		connection = AccountConnection(self, update_type, bank, identifier)
@@ -81,23 +92,6 @@ class Account(BaseModel):
 		}
 		graph[self.start.strftime("%Y-%m-%d")] = 0
 		return graph
-
-	def update(self, data: Dict) -> None:
-		# print(f"== Updating {self} ==")
-		self.balance = data['balance']
-		for transaction in data['transactions']:
-			transaction['info'] = transaction['info'].replace('&amp;', '&')
-			if Transaction.query.filter(Transaction.info == transaction['info'], Transaction.account_id == self.id,
-										Transaction.amount == transaction['amount'],
-										Transaction.date == transaction['date']).first() is None:
-				t = Transaction(self, transaction['amount'], transaction['date'], info=transaction['info'])
-				# print("Added {}".format(t))
-				db.session.add(t)
-			else:
-				pass
-		for transaction in self.transactions:
-			transaction.process_internal()
-		db.session.commit()  # TODO: No commit in model
 
 	def inferred_balance(self, date=None):
 		if date is None:
@@ -150,26 +144,6 @@ class Account(BaseModel):
 			next_total = (prev_total + next_total) / 2
 
 		return next_total
-
-	def calculated_total(self, date=None):
-		if date is None:
-			date = datetime.today()
-		if self.bankLink is not None:
-			# noinspection PyTypeChecker
-			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
-				Transaction.account_id == self.id, Transaction.date >= date).scalar()
-			if total is None:
-				total = 0
-			return round(self.balance - total, 3)
-		else:
-			# noinspection PyTypeChecker
-			total = Transaction.query.with_entities(func.sum(Transaction.amount)).filter(
-				Transaction.target_id == self.target.id, Transaction.date <= date).scalar()
-			if total is None:
-				total = 0
-			else:
-				total *= -1
-			return round(total, 3)
 
 	@property
 	def start(self):

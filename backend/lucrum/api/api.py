@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 
-from ..processing.fetch_data import fetch_balances
+from lucrum.database import db
+from lucrum.models import Transaction, AccountConnectionUser, Account
+from ..processing.fetch_data import fetch_balances, fetch_transactions
 from . import transactions, targets, methods, accounts, budgets, meta, tags, categories, scheduled
-from ..processing.process_transactions import update_all
+from ..processing.process_transactions import process_all
 from ..processing.task_queue import EventManager
 # from ..server_data import populate_database
 
@@ -163,13 +167,24 @@ def meta_stats() -> Response:
 
 @api.route('/meta/populate', methods=['POST'])
 def populate() -> Response:
-	fetch_balances()
+	# from lucrum.models.account.account_connection import ConnectionType
+	# from lucrum.user_config import CREDENTIALS
+	# conUsr = AccountConnectionUser(ConnectionType.SCRAPE, "santander", CREDENTIALS)
+	# db.session.add(conUsr)
+	# db.session.flush()
+	# acc1 = Account.query.filter(Account.id == 1).first()
+	# con = acc1.add_connection(ConnectionType.SCRAPE, "santander", "09-01-28 01213822")
+	# db.session.add(con)
+	# db.session.commit()
+
+	# fetch_balances()
+	fetch_transactions()
 	return jsonify()
 
 
 @api.route('/meta/update', methods=['POST'])
 def update_all_transactions() -> Response:
-	update_all(False)
+	process_all(False)
 	return jsonify()
 
 
