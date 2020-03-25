@@ -5,7 +5,7 @@ from dateutil.parser import parse
 from ..app_basic import basic_app
 from ..database import db
 # noinspection PyUnresolvedReferences
-from ..models import Account, AccountConnectionUser, AccountConnection, Budget, Category
+from ..models import *
 from json import load
 
 CONFIG_FILE = os.path.join(os.getcwd(), 'private_config.json')

@@ -8,20 +8,20 @@
 			 ref="segment"
 			 v-show="!hidden"
 			 :internal="is_internal">
-		<transaction-edit :transaction="transaction"></transaction-edit>
+		<transaction-extra :transaction="transaction"></transaction-extra>
 	</segment>
 </template>
 
 <script>
 import Segment from "@/components/Segment";
 import moment from "moment";
-import TransactionEdit from "@/components/transactions/TransactionEdit";
+import TransactionExtra from "@/components/transactions/TransactionExtra";
 import * as requests from "@/helpers/requests";
 import Transaction from "@/Models/Transaction";
 
 export default {
 	name: "TransactionSegment",
-	components: { TransactionEdit, Segment },
+	components: { TransactionExtra, Segment },
 	props: {
 		transaction: Transaction,
 		activeTransaction: Object,

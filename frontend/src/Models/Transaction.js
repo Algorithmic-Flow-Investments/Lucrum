@@ -33,6 +33,10 @@ export default class Transaction {
 		}
 		this.tags = this.getTags()
 		this.raw_info = data.raw_info || this.raw_info || "";
+
+		this.extra = this.extra || {}
+
+		this.extra.date = data.date_extra || {}
 	}
 
 	fetch() {

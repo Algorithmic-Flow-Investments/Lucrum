@@ -110,9 +110,10 @@ def plaid_fetch():
 	db.session.flush()
 	acc1 = Account("test-santander")
 
-	con = acc1.add_connection(ConnectionType.PLAID, "santander", "OwkrPebEq4uaRXXQ0ZdbhBdeoomMr5H8yxvp0")
+	# con = acc1.add_connection(ConnectionType.PLAID, "santander", "OwkrPebEq4uaRXXQ0ZdbhBdeoomMr5H8yxvp0")
 
 	con_user.update_balances()
+	return
 	db.session.flush()
 
 	assert acc1.balance is not None and acc1.balance > 0

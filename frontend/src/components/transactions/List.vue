@@ -1,7 +1,7 @@
 <template>
 	<div ref="sect" class="sect">
 		<transition-group name="slide-in" :style="{ '--total': transactions.length }"> <!-- TODO: Replace with js solution -->
-				<TransactionSegment
+				<transaction-segment
 						:active-transaction="activeTransaction"
 						:transaction="transaction"
 						:key="transaction.id"
@@ -10,7 +10,7 @@
 						ref="transactions"
 						v-for="(transaction, i) in transactions"
 						:style="{'--i': i, '--reverse': (range.forward) ? 1 : -1}"
-				></TransactionSegment>
+				></transaction-segment>
 		</transition-group>
 	</div>
 </template>

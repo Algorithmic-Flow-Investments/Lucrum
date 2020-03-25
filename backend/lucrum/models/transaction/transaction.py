@@ -1,5 +1,7 @@
 from datetime import datetime
-from sqlalchemy import select
+from typing import Optional
+
+from sqlalchemy import select, text
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql.functions import coalesce
 
@@ -197,3 +199,12 @@ class Transaction(BaseModel):
 			'raw_info': self.info,
 			'scheduled_id': self.scheduled_id
 		}
+
+	@property
+	def mirrored_transaction(self) -> Optional["Transaction"]:
+		if (not self.target) or (not self.target.internal_account_id):
+			return None
+		return Transaction.query.join(Target, Target.id == Transaction.target_id).join(Transaction.account).filter(
+			Transaction.amount == -self.amount, Transaction.date == self.date,
+			Transaction.target_id == Target.id, Target.internal_account_id == self.account_id,
+			text(f"{self.target.internal_account_id} = account.id")).first()

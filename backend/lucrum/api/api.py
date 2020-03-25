@@ -167,17 +167,9 @@ def meta_stats() -> Response:
 
 @api.route('/meta/populate', methods=['POST'])
 def populate() -> Response:
-	# from lucrum.models.account.account_connection import ConnectionType
-	# from lucrum.user_config import CREDENTIALS
-	# conUsr = AccountConnectionUser(ConnectionType.SCRAPE, "santander", CREDENTIALS)
-	# db.session.add(conUsr)
-	# db.session.flush()
-	# acc1 = Account.query.filter(Account.id == 1).first()
-	# con = acc1.add_connection(ConnectionType.SCRAPE, "santander", "09-01-28 01213822")
-	# db.session.add(con)
+	# Transaction.query.delete()
 	# db.session.commit()
-
-	# fetch_balances()
+	fetch_balances()
 	fetch_transactions()
 	return jsonify()
 

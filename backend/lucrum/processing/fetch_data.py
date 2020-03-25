@@ -15,9 +15,6 @@ def fetch_balances():
 	db.session.commit()
 
 
-# TODO: try deleting all transaction and reimporting to see if numbers line up / what is different
-
-
 def fetch_transactions(latest=True):
 	info("Fetching transactions")
 	usr: AccountConnectionUser
@@ -27,6 +24,7 @@ def fetch_transactions(latest=True):
 		new_transactions.extend(usr.update_transactions(latest=latest))
 	info(f"Added {len(new_transactions)} new transactions")
 	info(f"A>: {new_transactions}")
+	db.session.commit()
 	u = process_transactions_list(new_transactions)
 	info(f"updated {u}")
 	db.session.commit()

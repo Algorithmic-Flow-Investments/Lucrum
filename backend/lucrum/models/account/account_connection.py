@@ -106,6 +106,7 @@ class AccountConnectionUser(BaseModel):
 			for con in self.connections:
 				balance = scraper.get_balance(con.identifier)
 				con.add_balance(balance)
+			scraper.quit()
 
 	def update_transactions(self,
 							start_date: datetime = None,
@@ -161,11 +162,12 @@ class AccountConnectionUser(BaseModel):
 					if lt is not None:
 						start_date = lt.data_imported.date
 				for transaction in scraper.get_transactions(con.identifier, start_date, end_date):
-					t = con.add_transaction(-transaction['amount'], transaction['date'], transaction['info'],
+					t = con.add_transaction(transaction['amount'], transaction['date'], transaction['info'],
 											import_datetime)
 					if t is not None:
 						new_transactions.append(t)
 						print("Add", t, transaction)
 					else:
 						print("Duplicate", transaction)
+			scraper.quit()
 		return new_transactions

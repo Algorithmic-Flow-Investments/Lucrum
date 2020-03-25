@@ -10,7 +10,8 @@ class Scraper:
 	def __init__(self, token: dict):
 		self.token = token
 		options = webdriver.ChromeOptions()
-		# options.add_argument('headless')
+		options.add_argument('headless')
+		options.add_argument("--log-level=3")
 		download_dir = os.path.abspath('tmp')
 		preferences = {'download.default_directory': download_dir, 'directory_upgrade': True}
 		options.add_experimental_option('prefs', preferences)
@@ -35,3 +36,6 @@ class Scraper:
 			for filename in os.listdir('tmp'):
 				file_path = os.path.join('tmp', filename)
 				os.remove(file_path)
+
+	def quit(self):
+		self.driver.quit()

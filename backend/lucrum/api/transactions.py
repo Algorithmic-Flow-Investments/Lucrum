@@ -19,6 +19,8 @@ def transactions_list(query: MultiDict):
 											query).filter(Transaction.date >= min_date,
 															Transaction.date <= max_date).order_by(Transaction.date.desc())
 	transactions = transactions_query.all()
+
+	transactions = list(filter(lambda t: t.mirrored_transaction is None or t.amount > 0, transactions))
 	transactions.extend(scheduled_transaction_list(query))
 	return [transaction.data_basic() for transaction in transactions]
 

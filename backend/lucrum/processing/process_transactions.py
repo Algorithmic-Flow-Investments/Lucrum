@@ -89,6 +89,7 @@ def process_transactions_list(transactions: List[Transaction], standalone: bool 
 			updated.append(transaction.id)
 	if standalone:
 		EventManager.putTransactionsUpdatedEvent(updated)
+	db.session.commit()
 	return updated
 
 
@@ -98,7 +99,6 @@ def process_transaction(transaction: Transaction):
 		changed = changed or process_method(transaction)
 		changed = changed or process_target(transaction)
 		changed = changed or process_date(transaction)
-		db.session.commit()
 		return changed
 
 

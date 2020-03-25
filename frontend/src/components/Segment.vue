@@ -197,7 +197,12 @@ $duration: 0.4s;
 .active .left {
 	opacity: 0;
 	width: 0;
+	/*height: 0;*/
 	transition: opacity 0s;
+}
+
+.active .left div {
+	height: 0;
 }
 
 .active .right {
@@ -218,6 +223,6 @@ $duration: 0.4s;
 }
 
 .extra {
-	margin-top: 5px;
+	margin-top: 10px;
 }
 </style>
