@@ -1,5 +1,9 @@
 from typing import Dict
 
+from sqlalchemy import select
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.hybrid import hybrid_property
+
 from lucrum.database import db
 from .base import BaseModel
 
@@ -8,24 +12,16 @@ class Target(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(80), nullable=False)
 
-	internal_account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=True)
-	internal_account = db.relationship('Account', foreign_keys=[internal_account_id])
+	# internal_account = db.relationship("Account", uselist=False)
+	internal_account = db.relationship("Account", back_populates="target", uselist=False)
+	internal_account_id = association_proxy('internal_account', 'id')
 
 	substrings = db.relationship('TargetString', backref='parent', lazy='dynamic', passive_deletes=True)
 
 	tags = db.relationship('Tag', secondary='target_tags')
 
-	def __init__(self, name, internal_account=None):
+	def __init__(self, name):
 		self.name = name
-		if internal_account:
-			self.internal_account_id = internal_account.id
-		"""if internal_account:
-			self.internal_account_id = internal_account.id
-		else:
-			from models.account import Account
-			acc = Account.query.filter_by(name=self.name).first()
-			if acc is not None:
-				self.internal_account = acc"""
 
 	def __repr__(self):
 		if self.internal_account is not None:
@@ -50,6 +46,23 @@ class Target(BaseModel):
 	def transactions(self):
 		transaction = next(table for table in BaseModel.__subclasses__() if table.__name__ == 'Transaction')
 		return db.session.query(transaction).filter_by(target_id=self.id).all()
+
+	@hybrid_property
+	def is_internal(self):
+		return self.internal_account is not None
+
+	@is_internal.expression
+	def is_internal(self):
+		return self.internal_account_id != None
+
+	# @hybrid_property
+	# def internal_account_id(self):
+	# 	return self.internal_account.id
+	#
+	# @internal_account_id.expression
+	# def internal_account_id(cls):
+	# 	from .account import Account
+	# 	return select([Account.name]).where(cls.id == Account.target_id).as_scalar()
 
 
 class TargetString(BaseModel):

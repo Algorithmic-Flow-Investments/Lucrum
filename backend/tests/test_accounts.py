@@ -1,7 +1,7 @@
 from tests.common import get_context, get_sql_value
 import pytest
 from lucrum.database import db
-from lucrum.models import Account, Transaction
+from lucrum.models import Account, Transaction, Target
 from datetime import datetime
 
 
@@ -99,6 +99,30 @@ def test_duplicate_import():
 	t4 = acc1.add_transaction(5, datetime(2020, 1, 1), "abc456", now)
 	t5 = acc1.add_transaction(5, datetime(2020, 1, 1), "abc456", now)
 	assert t4 is not None and t5 is not None and t4.info == t5.info
+
+
+@get_context
+def test_internal_account():
+	acc1 = Account("acc1")
+	acc2 = Account("acc2")
+	target1 = Target("non-acc")
+	db.session.add_all([acc1, acc2, target1])
+	db.session.commit()
+
+	assert acc1.target.internal_account == acc1
+	assert acc2.target.internal_account == acc2
+
+	assert acc1.target.is_internal
+	assert get_sql_value(Target.is_internal, acc1.target_id, Target)
+	assert not target1.is_internal
+	assert not get_sql_value(Target.is_internal, target1.id, Target)
+
+	assert acc1.target.internal_account_id == acc1.id
+	assert acc2.target.internal_account_id == acc2.id
+
+	assert target1.internal_account_id is None
+
+	assert Target.query.filter(Target.internal_account_id == None).first().id == target1.id
 
 
 @get_context

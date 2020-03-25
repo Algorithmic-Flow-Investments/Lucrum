@@ -15,3 +15,6 @@ class AccountBalance(BaseModel):
 		self.date = date
 		self.balance = balance
 		self.account = account
+
+	def __repr__(self):
+		return f"<AccountBalance £{self.balance}>"

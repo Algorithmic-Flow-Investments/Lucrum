@@ -1,4 +1,5 @@
 from dateutil.parser import parse
+from sqlalchemy import not_
 from sqlalchemy.sql.expression import or_
 from werkzeug.datastructures import MultiDict
 
@@ -27,9 +28,9 @@ def transactions_find(model, query: MultiDict):
 
 def filter_budget(model, query, budget_id: int = 1):
 	return query.join(model.tags, isouter=True) \
-                                                           .join(Tag.category, isouter=True) \
-                                                           .join(Category.budgets, isouter=True) \
-                                                           .filter(or_(Budget.id == budget_id, Budget.id.is_(None)))
+                                                                 .join(Tag.category, isouter=True) \
+                                                                 .join(Category.budgets, isouter=True) \
+                                                                 .filter(or_(Budget.id == budget_id, Budget.id.is_(None)))
 
 
 def filter_tag_category(query, tag_id=None, cat_id=None):
@@ -42,4 +43,4 @@ def filter_tag_category(query, tag_id=None, cat_id=None):
 
 def filter_no_internal(query):
 	return query.outerjoin(Target, Target.id == Transaction.target_id).filter(
-		or_(Transaction.target_id.is_(None), Target.internal_account_id.is_(None)))
+		or_(Transaction.target_id.is_(None), not_(Target.is_internal)))

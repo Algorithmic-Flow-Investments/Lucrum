@@ -18,13 +18,14 @@ class Account(BaseModel):
 	name = db.Column(db.String(80), nullable=False)
 	description = db.Column(db.Text, nullable=True)
 
-	target = db.relationship("Target", uselist=False)
+	target_id = db.Column(db.Integer, db.ForeignKey('target.id'), nullable=False)
+	target = db.relationship('Target', foreign_keys=[target_id], back_populates="internal_account")
 
 	def __init__(self, name, description=None):
 		self.name = name
 		self.description = description
 
-		target = Target(self.name, self)
+		target = Target(self.name)
 		self.target = target
 		db.session.add(target)
 
@@ -33,6 +34,13 @@ class Account(BaseModel):
 
 	def data_basic(self) -> Dict[str, str]:
 		return {'name': self.name, 'balance': self.balance, 'id': self.id, 'description': self.description}
+
+	def data_extra(self):
+		return dict(
+			self.data_basic(),
+			**{
+				# 'balance_graph': self.balance_graph(),
+			})
 
 	def add_balance(self, balance, date=None):
 		if date is None:
@@ -82,17 +90,9 @@ class Account(BaseModel):
 		db.session.add(connection)
 		return connection
 
-	def data_extra(self):
-		return dict(
-			self.data_basic(),
-			**{
-				# 'balance_graph': self.balance_graph(),
-				'calculated_balance': self.calculated_total()
-			})
-
 	def balance_graph(self):
 		graph = {
-			date.strftime("%Y-%m-%d"): self.calculated_total(date)
+			date.strftime("%Y-%m-%d"): self.inferred_balance(date)
 			for date in date_range(self.start, datetime.today(), 7)
 		}
 		graph[self.start.strftime("%Y-%m-%d")] = 0

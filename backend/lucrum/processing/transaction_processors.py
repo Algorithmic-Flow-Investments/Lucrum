@@ -78,13 +78,16 @@ def process_target(transaction: Transaction):
 
 
 def process_internal(transaction: Transaction):
+	# Finds a transaction with a complimentary amount that happens on the same day in a different account
+	# and sets both transactions inferred target ids
+	# TODO: maybe don't set if it already has a target?
 	old_value = transaction.target_id
 	mirrored_transaction: Transaction = Transaction.query.filter(Transaction.amount == -transaction.amount,
 																	Transaction.date == transaction.date,
 																	Transaction.account != transaction.account).first()
 	if mirrored_transaction:
-		this_account_target: Target = Target.query.filter(Target.name == transaction.account.name).first()
-		other_account_target: Target = Target.query.filter(Target.name == mirrored_transaction.account.name).first()
+		this_account_target: Target = transaction.account.target
+		other_account_target: Target = mirrored_transaction.account.target
 		if this_account_target and other_account_target:
 			mirrored_transaction.data_inferred.target_id = this_account_target.id
 			transaction.data_inferred.target_id = other_account_target.id

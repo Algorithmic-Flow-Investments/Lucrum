@@ -1,3 +1,4 @@
+from sqlalchemy import select, text, table
 from werkzeug.datastructures import MultiDict
 
 from lucrum.models import Account, Transaction, Target, TargetString, MethodString, Method, Tag, TransactionImported, \
@@ -7,6 +8,7 @@ from datetime import datetime
 from lucrum.api import transactions, meta
 import pytest
 
+from lucrum.processing.transaction_processors import process_internal
 from .common import get_context, get_sql_value
 
 from lucrum.processing import transaction_processors
@@ -73,6 +75,28 @@ def test_target():
 	assert t1.target_id == target2.id
 	assert t1.target.id == target2.id
 	assert get_sql_value(Transaction.target_id, t1.id) == target2.id
+
+
+@get_context
+def test_internal_target():
+	acc1 = Account("test-acc-one")
+	acc2 = Account("test-acc-two")
+	db.session.add_all([acc1, acc2])
+	db.session.commit()
+
+	t1 = Transaction(acc1, 5, datetime(2020, 1, 5))
+	# t1.data_inferred.target = acc2.target
+	t2 = Transaction(acc2, -5, datetime(2020, 1, 5))
+	# t2.data_inferred.target = acc1.target
+	t3 = Transaction(acc1, 8, datetime(2020, 4, 5))
+	db.session.add_all([t1, t2, t3])
+	process_internal(t1)
+	process_internal(t2)
+	assert t1.target_id == acc2.target.id
+	assert t2.target_id == acc1.target.id
+
+	assert t1.mirrored_transaction == t2
+	assert t2.mirrored_transaction == t1
 
 
 @get_context
