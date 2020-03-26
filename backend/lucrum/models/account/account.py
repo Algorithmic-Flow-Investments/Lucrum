@@ -19,7 +19,12 @@ class Account(BaseModel):
 	description = db.Column(db.Text, nullable=True)
 
 	target_id = db.Column(db.Integer, db.ForeignKey('target.id'), nullable=False)
-	target = db.relationship('Target', foreign_keys=[target_id], back_populates="internal_account")
+	target = db.relationship(
+		'Target',
+		foreign_keys=[target_id],
+		back_populates="internal_account",
+		cascade="all, delete",
+	)
 
 	def __init__(self, name, description=None):
 		self.name = name

@@ -126,6 +126,18 @@ def test_internal_account():
 
 
 @get_context
+def test_delete():
+	accs = [Account("acc"), Account("acc2")]
+	db.session.add_all(accs)
+	db.session.commit()
+
+	db.session.delete(accs[0])
+	db.session.flush()
+	assert len(Account.query.all()) == 1, "too many account"
+	assert len(Target.query.all()) == 1, "too many targets"
+
+
+@get_context
 def plaid_fetch():
 	from lucrum.models.account.account_connection import ConnectionType, AccountConnectionUser
 	con_user = AccountConnectionUser(ConnectionType.PLAID, "santander",

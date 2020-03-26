@@ -2,11 +2,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event, MetaData
 from sqlalchemy.engine import Engine
 
+DB_FOREIGN_KEY_CONSTRAINTS = True
+
 
 @event.listens_for(Engine, 'connect')
 def set_sqlite_pragma(dbapi_connection, connection_record):
+	print("HELLO THERE", DB_FOREIGN_KEY_CONSTRAINTS)
 	cursor = dbapi_connection.cursor()
-	cursor.execute('PRAGMA foreign_keys=ON')
+	if DB_FOREIGN_KEY_CONSTRAINTS:
+		cursor.execute('PRAGMA foreign_keys=ON')
 	cursor.execute('PRAGMA journal_mode=WAL')
 	cursor.close()
 
