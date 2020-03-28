@@ -3,6 +3,7 @@ from lucrum.database import db
 from datetime import datetime
 import pytest
 
+from utils import Interval
 from .common import get_context
 
 
@@ -20,7 +21,7 @@ def test_monthly():
 
 	target = Target("Bulb")
 
-	t1 = ScheduledTransaction(account, "bills", 45, datetime(2020, 2, 3), target, ScheduledTransaction.Period.MONTH)
+	t1 = ScheduledTransaction(account, "bills", 45, datetime(2020, 2, 3), target, Interval.MONTH)
 	db.session.add(t1)
 	db.session.commit()
 
