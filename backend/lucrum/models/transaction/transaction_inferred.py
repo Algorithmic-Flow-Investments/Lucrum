@@ -22,7 +22,8 @@ class TransactionInferred(BaseModel):
 		'Tag',
 		secondary='join(Target, target_tags, target_tags.c.target_id == Target.id).'
 		'join(Tag, target_tags.c.tag_id == Tag.id).join(Transaction, Transaction.target_id == Target.id)',
-		primaryjoin='TransactionInferred.id == Transaction.id')
+		primaryjoin='TransactionInferred.id == Transaction.id',
+		viewonly=True)
 
 	def __init__(self, transaction: "Transaction"):
 		# , date: datetime, reference: str, target: "Target", method: "Method"

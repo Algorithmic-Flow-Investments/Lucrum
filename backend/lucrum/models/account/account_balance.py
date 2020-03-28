@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from ..base import BaseModel
 from ...database import db
 
@@ -11,7 +13,7 @@ class AccountBalance(BaseModel):
 	balance = db.Column(db.Float)
 	date = db.Column(db.DateTime)
 
-	def __init__(self, date, balance, account):
+	def __init__(self, date: datetime, balance: float, account):
 		self.date = date
 		self.balance = balance
 		self.account = account

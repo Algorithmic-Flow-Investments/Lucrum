@@ -12,6 +12,7 @@
 					</template>
 				</multiselect>
 				<b-button @click="$emit('new')">Create new</b-button>
+				<target-suggestions class="suggestions" :transaction="transaction" @select="suggestionSave" @selectEdit="suggestionSaveEdit"></target-suggestions>
 			</div>
 		</section>
 		<footer class="modal-card-foot">
@@ -24,10 +25,11 @@
 
 <script>
 	import Multiselect from 'vue-multiselect'
+	import TargetSuggestions from "@/components/transactions/target/TargetSuggestions";
 
 	export default {
 		name: "TargetSelect",
-		components: { Multiselect },
+		components: { TargetSuggestions, Multiselect },
 		props: ['transaction'],
 		data() {
 			return {
@@ -51,6 +53,14 @@
 					this.saving = false;
 					this.$emit('close-edit')
 				})
+			},
+			suggestionSave(target) {
+				this.selectedTarget = target
+				this.save()
+			},
+			suggestionSaveEdit(target) {
+				this.selectedTarget = target
+				this.saveEdit()
 			}
 		}
 	};
@@ -81,6 +91,10 @@
 	/deep/ .button {
 		margin-top: 5px;
 		width: 100%;
+	}
+
+	.suggestions {
+		margin-top: 10px;
 	}
 
 </style>

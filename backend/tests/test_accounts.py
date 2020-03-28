@@ -31,40 +31,49 @@ def test_inferred_balance():
 	acc2 = Account("test-other")
 	db.session.add_all([acc1, acc2])
 	db.session.flush()
-	t1 = acc1.add_transaction(8, datetime(2020, 1, 3), "")
-	t1.set_target(acc2.target)
-	t2 = acc1.add_transaction(-3, datetime(2020, 1, 7), "")
-	t2.set_target(acc2.target)
-	db.session.commit()
 
-	assert acc2.inferred_balance(datetime(2020, 1, 6)) == -8
-	assert acc2.inferred_balance(datetime(2020, 1, 8)) == -5
-
+	# Test next
 	# 15
-	t3 = acc2.add_transaction(5, datetime(2020, 1, 2), "")
-	t3.set_target(acc1.target)
+	acc2.add_transaction(5, datetime(2020, 1, 7), "").data_inferred.target = acc1.target
+	acc1.add_transaction(-5, datetime(2020, 1, 7), "").data_inferred.target = acc2.target
 	# 10
-	acc1.add_balance(10, datetime(2020, 1, 4))
+	acc1.add_transaction(-6, datetime(2020, 1, 9), "")
+	# 4
+	acc2.add_transaction(-4, datetime(2020, 1, 11), "").data_inferred.target = acc1.target
+	# 8
+	acc1.add_transaction(2, datetime(2020, 1, 13), "")
 	# 10
-	t4 = acc2.add_transaction(-5, datetime(2020, 1, 6), "")
-	t4.set_target(acc1.target)
-	# 15
-	t5 = acc2.add_transaction(-5, datetime(2020, 1, 8), "")
-	t5.set_target(acc1.target)
-	# 20
-	acc1.add_balance(20, datetime(2020, 1, 10))
-	# 20
-	t6 = acc2.add_transaction(-5, datetime(2020, 1, 12), "")
-	t6.set_target(acc1.target)
-	# 25
 
-	assert acc1.inferred_balance(datetime(2020, 1, 1)) == 15
-	assert acc1.inferred_balance(datetime(2020, 1, 3)) == 10
-	assert acc1.inferred_balance(datetime(2020, 1, 5)) == 10
-	assert acc1.inferred_balance(datetime(2020, 1, 7)) == 15
-	assert acc1.inferred_balance(datetime(2020, 1, 9)) == 20
-	assert acc1.inferred_balance(datetime(2020, 1, 11)) == 20
-	assert acc1.inferred_balance(datetime(2020, 1, 13)) == 25
+	# Test prev
+	acc1.add_balance(10, datetime(2020, 1, 15))
+	# 10
+	acc1.add_transaction(-3, datetime(2020, 1, 17), "")
+	# 7
+	acc1.add_transaction(8, datetime(2020, 1, 19), "")
+	# 15
+	acc2.add_transaction(5, datetime(2020, 1, 21), "").data_inferred.target = acc1.target
+	# 10
+	acc1.add_transaction(5, datetime(2020, 1, 23), "")
+	# 15
+	acc2.add_transaction(-5, datetime(2020, 1, 25), "").data_inferred.target = acc1.target
+	acc1.add_transaction(5, datetime(2020, 1, 25), "").data_inferred.target = acc2.target
+	# 20
+	db.session.flush()
+
+	# Test next
+	assert acc1.inferred_balance(datetime(2020, 1, 14)) == 10
+	assert acc1.inferred_balance(datetime(2020, 1, 12)) == 8
+	assert acc1.inferred_balance(datetime(2020, 1, 10)) == 4
+	assert acc1.inferred_balance(datetime(2020, 1, 8)) == 10
+	assert acc1.inferred_balance(datetime(2020, 1, 6)) == 15
+
+	# Test prev
+	assert acc1.inferred_balance(datetime(2020, 1, 16)) == 10
+	assert acc1.inferred_balance(datetime(2020, 1, 18)) == 7
+	assert acc1.inferred_balance(datetime(2020, 1, 20)) == 15
+	assert acc1.inferred_balance(datetime(2020, 1, 22)) == 10
+	assert acc1.inferred_balance(datetime(2020, 1, 24)) == 15
+	assert acc1.inferred_balance(datetime(2020, 1, 26)) == 20
 
 
 @get_context

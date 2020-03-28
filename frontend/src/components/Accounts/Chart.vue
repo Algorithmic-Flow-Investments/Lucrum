@@ -41,10 +41,10 @@ export default {
 			this.accounts.forEach(account => {
 				let date = moment();
 				let graph = []
-				for (let i = 0; i < 52 * 2; i++) {
+				for (let i = 0; i < 12 * 3; i++) {
 					let total = this.account_balance(account, date);
 					graph.unshift([date.format('YYYY/MM/DD'), total]);
-					date.subtract(7, "days");
+					date.subtract(1, "months");
 				}
 				series.unshift({data: graph, name: account.name})
 			})

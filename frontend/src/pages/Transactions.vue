@@ -30,6 +30,7 @@ export default {
 			topTransaction: null,
 			stats: null,
 			budget_id: null,
+			account_id: this.$route.query.account_id || null,
 			eventSource: null,
 			tagCat: {cat_id: null, tag_id: null}
 		};
@@ -88,6 +89,7 @@ export default {
 		extra_params() {
 			let params = {}
 			if (this.budget_id) params.budget_id = this.budget_id
+			if (this.account_id) params.account_id = this.account_id
 			if (this.tagCat.cat_id) params.category_id = this.tagCat.cat_id
 			if (this.tagCat.tag_id) params.tag_id = this.tagCat.tag_id
 			return params;

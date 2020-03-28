@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import reduce
 from typing import Dict, Optional
 
 from sqlalchemy import func, select
@@ -8,7 +9,7 @@ from lucrum.database import db
 from ..base import BaseModel
 from ..target import Target
 from ..transaction import Transaction, TransactionImported
-from ...utils import date_range
+from ...utils import date_range, Interval
 from .account_balance import AccountBalance
 from .account_connection import AccountConnection, ConnectionType
 
@@ -79,6 +80,7 @@ class Account(BaseModel):
 			Transaction.id == TransactionImported.id, Transaction.account_id == self.id,
 			TransactionImported.info == info, TransactionImported.amount == amount, TransactionImported.date == date,
 			TransactionImported.import_date != import_date).first() is None:
+			info = info.replace("&amp;", "&")
 			transaction = Transaction(self, amount, date, info, import_date)
 			db.session.add(transaction)
 			return transaction
@@ -95,10 +97,14 @@ class Account(BaseModel):
 		db.session.add(connection)
 		return connection
 
-	def balance_graph(self):
+	def balance_graph(self, min_date: datetime, max_date: datetime, interval: Interval = Interval.MONTH):
+		if min_date < self.start:
+			min_date = self.start
+		if max_date > datetime.now():
+			max_date = datetime.now()
 		graph = {
 			date.strftime("%Y-%m-%d"): self.inferred_balance(date)
-			for date in date_range(self.start, datetime.today(), 7)
+			for date in date_range(min_date, max_date, interval, snap_end=True)
 		}
 		graph[self.start.strftime("%Y-%m-%d")] = 0
 		return graph
@@ -106,54 +112,85 @@ class Account(BaseModel):
 	def inferred_balance(self, date=None):
 		if date is None:
 			date = datetime.now()
-		if len(self.balances) == 0:
-			# noinspection PyTypeChecker
-			total = db.session.query(func.sum(Transaction.amount)).select_from(Transaction).filter(
-				Transaction.target_id == self.target.id, Transaction.date <= date).scalar()
-			if total is None:
-				total = 0
-			else:
-				total *= -1
-			return round(total, 3)
-		prv: AccountBalance = AccountBalance.query.filter(AccountBalance.account_id == self.id,
-															AccountBalance.date <= date).order_by(
-																AccountBalance.date.desc()).first()
+		# print("==", date, "==", self, "==")
 
-		if prv is not None:
-			prev_total = db.session.query(func.sum(Transaction.amount)).select_from(Transaction).filter(
-				Transaction.target_id == self.target.id, Transaction.date <= date,
-				Transaction.date >= prv.date).scalar()
-			if prev_total is None:
-				prev_total = 0
-			prev_total = prv.balance - prev_total
-		else:
-			prev_total = None
+		def _inferred_balance_from_prev():
 
-		nxt: AccountBalance = AccountBalance.query.filter(AccountBalance.account_id == self.id,
-															AccountBalance.date >= date).order_by(
-																AccountBalance.date.asc()).first()
-		if nxt is not None:
-			next_total = db.session.query(func.sum(Transaction.amount)).select_from(Transaction).filter(
-				Transaction.target_id == self.target.id, Transaction.date >= date,
-				Transaction.date <= nxt.date).scalar()
-			if next_total is None:
-				next_total = 0
-			next_total = nxt.balance + next_total
-		else:
-			next_total = prev_total
+			prev_balance: AccountBalance = AccountBalance.query.filter(AccountBalance.account_id == self.id,
+																		AccountBalance.date <= date).order_by(
+																			AccountBalance.date.desc()).first()
 
-		if prev_total is None:
-			prev_total = next_total
+			if prev_balance is None:
+				prev_balance = AccountBalance(datetime.min, 0, self)
 
-		if next_total is None:
-			print("NEXT WAS NULL")
-			return 0
+			account_transactions_sum_since_prev = db.session.query(func.sum(
+				Transaction.amount)).select_from(Transaction).filter(Transaction.account_id == self.id,
+																		Transaction.date <= date,
+																		Transaction.date >= prev_balance.date).scalar()
+			if account_transactions_sum_since_prev is None:
+				account_transactions_sum_since_prev = 0
 
-		if next_total != prev_total:
-			print("PREV AND NEXT ARE OUT OF SYNC!", prev_total, next_total)
-			next_total = (prev_total + next_total) / 2
+			target_transaction_since_prev = Transaction.query.filter(Transaction.target_id == self.target_id,
+																		Transaction.date <= date,
+																		Transaction.date >= prev_balance.date).all()
+			target_transaction_sum_since_prev = reduce(
+				lambda a, b: a + b.amount,
+				filter(lambda t: t.mirrored_transaction is None, target_transaction_since_prev), 0)
 
-		return next_total
+			inferred_prev_balance = prev_balance.balance + account_transactions_sum_since_prev - target_transaction_sum_since_prev
+
+			# print("PREV", inferred_prev_balance, prev_balance, account_transactions_sum_since_prev,
+			# 		target_transaction_sum_since_prev)
+			return inferred_prev_balance
+
+		def _inferred_balance_from_next():
+			next_balance: AccountBalance = AccountBalance.query.filter(AccountBalance.account_id == self.id,
+																		AccountBalance.date >= date).order_by(
+																			AccountBalance.date.asc()).first()
+			if next_balance is None:
+				# print("No next balance")
+				return None
+
+			account_transactions_sum_before_next = db.session.query(func.sum(
+				Transaction.amount)).select_from(Transaction).filter(Transaction.account_id == self.id,
+																		Transaction.date > date,
+																		Transaction.date <= next_balance.date).scalar()
+			# print(
+			# 	"transaction_before_next",
+			# 	Transaction.query.filter(Transaction.account_id == self.id, Transaction.date > date,
+			# 								Transaction.date <= next_balance.date).all())
+			if account_transactions_sum_before_next is None:
+				account_transactions_sum_before_next = 0
+
+			target_transaction_before_next = Transaction.query.filter(Transaction.target_id == self.target_id,
+																		Transaction.date >= date,
+																		Transaction.date <= next_balance.date).all()
+
+			# for t in filter(lambda t: t.mirrored_transaction is None, target_transaction_before_next):
+			# 	print("ttbn", t, t.mirrored_transaction, t.data_imported.date)
+
+			# print(">>?", Transaction.query.filter(Transaction.amount == 1000, Transaction.account_id == 1).first())
+
+			target_transaction_sum_before_next = reduce(
+				lambda a, b: a + b.amount,
+				filter(lambda t: t.mirrored_transaction is None, target_transaction_before_next), 0)
+
+			inferred_next_balance = next_balance.balance - account_transactions_sum_before_next + target_transaction_sum_before_next
+
+			# print(
+			# 	"account transactions\n\t\t", "\n\t\t".join(
+			# 		str(t) for t in Transaction.query.filter(Transaction.account_id == self.id, Transaction.date > date,
+			# 													Transaction.date <= next_balance.date).order_by(
+			# 														Transaction.date.desc()).all()))
+
+			# print("NEXT", inferred_next_balance, next_balance, account_transactions_sum_before_next,
+			# 		target_transaction_sum_before_next)
+			return inferred_next_balance
+
+		inb = _inferred_balance_from_next()
+		if inb is None:
+			return _inferred_balance_from_prev()
+		return inb
 
 	@property
 	def start(self):

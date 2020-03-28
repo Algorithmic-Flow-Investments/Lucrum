@@ -6,7 +6,7 @@ from .base import BaseModel
 from . import Account
 from .target import Target
 from .transaction import Transaction
-from ..utils import date_range
+from ..utils import date_range, Interval
 
 
 class ScheduledTransaction(BaseModel):
@@ -19,11 +19,7 @@ class ScheduledTransaction(BaseModel):
 	amount = db.Column(db.Float, nullable=False)
 	start_date = db.Column(db.DateTime, nullable=False)
 
-	class Period(enum.Enum):
-		WEEK = 1
-		MONTH = 2
-
-	period = db.Column(db.Enum(Period), nullable=True)
+	period = db.Column(db.Enum(Interval), nullable=True)
 
 	end_date = db.Column(db.DateTime, nullable=True)
 
@@ -40,7 +36,7 @@ class ScheduledTransaction(BaseModel):
 					amount: int,
 					start_date: datetime,
 					target: Target,
-					period: Period = None,
+					period: Interval = None,
 					end_date: datetime = None):
 		self.account = account
 		self.name = name
@@ -83,11 +79,11 @@ class ScheduledTransaction(BaseModel):
 		return transaction
 
 	def get_occurrences(self, min_date: datetime, max_date: datetime):
-		if self.period is ScheduledTransaction.Period.MONTH:
+		if self.period is Interval.MONTH:
 			for date in date_range(min_date, max_date):
 				if date.day == self.start_date.day:
 					yield self.occurred_transaction(date)
-		elif self.period is ScheduledTransaction.Period.WEEK:
+		elif self.period is Interval.WEEK:
 			for date in date_range(min_date, max_date):
 				if date.weekday() == self.start_date.weekday():
 					yield self.occurred_transaction(date)

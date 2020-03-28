@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from sqlalchemy import func
 
+from ..utils import Interval
 from ..database import db
 from .base import BaseModel
 from . import Category, Transaction, Tag
@@ -13,11 +14,7 @@ class Budget(BaseModel):
 	name = db.Column(db.String(80), nullable=False)
 	total = db.Column(db.Float, nullable=True)
 
-	class Period(enum.Enum):
-		WEEK = 1
-		MONTH = 2
-
-	period = db.Column(db.Enum(Period), nullable=True)
+	period = db.Column(db.Enum(Interval), nullable=True)
 	startDate = db.Column(db.Date, nullable=True)
 	endDate = db.Column(db.Date, nullable=True)
 	categories = db.relationship('Category', secondary='budget_categories')
@@ -27,7 +24,7 @@ class Budget(BaseModel):
 					total: float = None,
 					start: datetime = None,
 					end: datetime = date.max,
-					period: Period = None):
+					period: Interval = None):
 		self.name = name
 		self.total = total
 		self.period = period
@@ -49,11 +46,11 @@ class Budget(BaseModel):
 		if start is None:
 			start = date.min
 		return Transaction.query \
-                                                   .join(Transaction.tags, isouter=True) \
-                                                   .join(Tag.category, isouter=True) \
-                                                   .join(Category.budgets, isouter=True) \
-                                                   .filter(Budget.id == self.id) \
-                                                   .filter(Transaction.date >= start, Transaction.date <= self.endDate)
+                                                               .join(Transaction.tags, isouter=True) \
+                                                               .join(Tag.category, isouter=True) \
+                                                               .join(Category.budgets, isouter=True) \
+                                                               .filter(Budget.id == self.id) \
+                                                               .filter(Transaction.date >= start, Transaction.date <= self.endDate)
 
 	@property
 	def per_day(self):
@@ -65,18 +62,18 @@ class Budget(BaseModel):
 	def per_week(self):
 		if self.total is None:
 			return None
-		if self.period == Budget.Period.WEEK:
+		if self.period == Interval.WEEK:
 			return self.total
-		if self.period == Budget.Period.MONTH:
+		if self.period == Interval.MONTH:
 			return self.total * 12 / 52
 
 	@property
 	def per_month(self):
 		if self.total is None:
 			return None
-		if self.period == Budget.Period.WEEK:
+		if self.period == Interval.WEEK:
 			return self.total * 52 / 12
-		if self.period == Budget.Period.MONTH:
+		if self.period == Interval.MONTH:
 			return self.total
 
 	@property

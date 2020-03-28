@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
-from sqlalchemy import select, text
+from sqlalchemy import select, text, or_, and_
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql.functions import coalesce
 
@@ -17,7 +17,7 @@ from .transaction_manual import TransactionManual
 class Transaction(BaseModel):
 	id = db.Column(db.Integer, primary_key=True)
 
-	account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=True)
+	account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=False)
 	account = db.relationship('Account', backref=db.backref('transactions', lazy=True), foreign_keys=[account_id])
 
 	data_imported = db.relationship(TransactionImported, backref="parent", cascade="all, delete", uselist=False)
@@ -32,7 +32,8 @@ class Transaction(BaseModel):
 		"or_(Transaction.target_id == target_tags.c.target_id, Transaction.id == transaction_tags.c.transaction_id)",
 		secondaryjoin="or_(Tag.id == transaction_tags.c.tag_id, Tag.id == target_tags.c.tag_id)",
 		backref="transactions",
-		uselist=True)
+		uselist=True,
+		viewonly=True)
 
 	scheduled_id = None
 
@@ -162,8 +163,9 @@ class Transaction(BaseModel):
 		process_transactions.process_transaction(self)
 
 	def __repr__(self):
-		return '<Transaction {} at {} on {} using {} tags: {}>'.format(self.amount, self.target, self.date, self.method,
-																		self.tags)
+		return '<Transaction ({}) {} to {} at {} on {} using {} tags: {}>'.format(self.id, self.amount, self.account,
+																					self.target, self.date, self.method,
+																					self.tags)
 
 	def data_extra(self):
 		return dict(
@@ -204,7 +206,10 @@ class Transaction(BaseModel):
 	def mirrored_transaction(self) -> Optional["Transaction"]:
 		if (not self.target) or (not self.target.internal_account_id):
 			return None
+
+		date_allowance = or_(Transaction.date == self.date, Transaction.date == self.date + timedelta(1),
+								Transaction.date == self.date - timedelta(1))
 		return Transaction.query.join(Target, Target.id == Transaction.target_id).join(Transaction.account).filter(
-			Transaction.amount == -self.amount, Transaction.date == self.date,
+			Transaction.amount == -self.amount, date_allowance,
 			Transaction.target_id == Target.id, Target.internal_account_id == self.account_id,
 			text(f"{self.target.internal_account_id} = account.id")).first()

@@ -2,6 +2,7 @@ import os
 
 from dateutil.parser import parse
 
+from lucrum.utils import Interval
 from ..app_basic import basic_app
 from ..database import db
 # noinspection PyUnresolvedReferences
@@ -81,7 +82,7 @@ def budgets_setup():
 	for budget in CONFIG['budgets']:
 		bdg: Budget = Budget.query.filter(Budget.name == budget['name']).first()
 		total = budget['total']
-		period = Budget.Period[budget['period'].upper()]
+		period = Interval[budget['period'].upper()]
 		start = parse(budget['start'])
 		end = parse(budget['end']) if budget['end'] is not "" else None
 		if bdg is None:

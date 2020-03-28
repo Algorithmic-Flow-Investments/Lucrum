@@ -3,6 +3,7 @@ from typing import Dict
 from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import abort
 
+from lucrum.processing.transaction_target_suggestions import process_suggestions
 from ..database import db
 from lucrum.models import Target, TargetString, Transaction, Tag
 from ..processing import process_transactions

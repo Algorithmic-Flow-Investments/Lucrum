@@ -46,12 +46,22 @@ export default class Transaction {
 		})
 	}
 
+	fetchTargetSuggestions() {
+		return new Promise((resolve, reject) => {
+			if (!this.id) resolve([]);
+			requests.get(`transactions/target_suggestions/${this.id}`).then(data => {
+				resolve(data)
+			})
+		})
+	}
+
 	unlinkTarget() {
 		this.target_id = null
 		this.target = this.getTarget()
 	}
 
 	commit() {
+		// TODO: Fix unlinking
 		return new Promise((resolve, reject) => {
 			if (this.id) {
 				requests.post(`transactions/update/${this.id}`, this).then(data => {

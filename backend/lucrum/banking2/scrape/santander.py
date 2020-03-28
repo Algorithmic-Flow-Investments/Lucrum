@@ -92,7 +92,7 @@ class Santander(Scraper):
 		driver = self.driver
 
 		# upper bound is inclusive for Santander
-		end_date_incl = end_date - timedelta(days=1)
+		end_date_incl = end_date  # - timedelta(days=1)
 
 		# Go to the accounts page
 		self.go_home()

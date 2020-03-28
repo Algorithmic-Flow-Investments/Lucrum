@@ -125,11 +125,11 @@ class AccountConnectionUser(BaseModel):
 		if self.connection_type == ConnectionType.PLAID:
 			if latest:
 				start_date = min([
-					t.data_imported.date for t in [
+					t.data_imported.date if t is not None else start_date for t in [
 						Transaction.query.filter(
 							Transaction.account_id == connection.account_id).order_by(Transaction.date.desc()).first()
 						for connection in self.connections
-					] if t is not None
+					]
 				],
 									default=datetime(1970, 1, 1))
 			all_transactions = plaid_api.get_transactions(self.token, start_date, end_date)

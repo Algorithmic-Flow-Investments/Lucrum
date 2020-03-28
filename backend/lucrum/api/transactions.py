@@ -1,11 +1,12 @@
 from dateutil.parser import parse
 from werkzeug.datastructures import MultiDict
 
+from lucrum.processing.transaction_target_suggestions import process_suggestions
 from .scheduled import scheduled_transaction_list
 from .transactions_common import transactions_find, filter_budget, \
  filter_no_internal
 from ..database import db
-from lucrum.models import Transaction, Category, Tag
+from lucrum.models import Transaction, Category, Tag, TransactionManual
 from typing import Dict
 from ..processing.process_transactions import process_transactions_list
 from ..utils import date_range
@@ -134,6 +135,7 @@ def process(query: MultiDict):
 	return "PENDING"
 
 
+# TODO: Fix deleting strings
 def update(transaction_id: int, data: Dict):
 	transaction = Transaction.query.filter(Transaction.id == transaction_id).one()
 	for key, value in data.items():
@@ -149,3 +151,8 @@ def update(transaction_id: int, data: Dict):
 			transaction.parent_transaction_id = value
 	db.session.commit()
 	return transaction.data_extra()
+
+
+def target_suggestions(transaction_id):
+	transaction: Transaction = Transaction.query.filter(Transaction.id == transaction_id).first()
+	return process_suggestions(transaction)

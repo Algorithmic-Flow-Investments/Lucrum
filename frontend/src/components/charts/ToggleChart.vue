@@ -15,7 +15,7 @@
 		props: ['value', 'one', 'two'],
 		data() {
 			return {
-				budget_id: this.$route.params.budget_id || null,
+				budget_id: this.$route.query.budget_id || null,
 				budgets: [],
 				selectingBudget: false
 			}

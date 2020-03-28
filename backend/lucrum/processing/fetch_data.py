@@ -23,7 +23,7 @@ def fetch_transactions(latest=True):
 		info(f"Fetching transactions for {usr}")
 		new_transactions.extend(usr.update_transactions(latest=latest))
 	info(f"Added {len(new_transactions)} new transactions")
-	info(f"A>: {new_transactions}")
+	info(f"Added: {new_transactions}")
 	db.session.commit()
 	u = process_transactions_list(new_transactions)
 	info(f"updated {u}")

@@ -17,7 +17,9 @@ export default class Target {
 
 	fetch() {
 		return new Promise((resolve, reject) => {
-			if (!this.id) reject();
+			if (!this.id) {
+				return;
+			}
 			requests.get(`targets/get/${this.id}`).then(data => {
 				this.fetched = true
 				this.unpack(data)

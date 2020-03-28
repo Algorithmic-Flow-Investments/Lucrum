@@ -52,6 +52,11 @@ def transactions_process() -> Response:
 	return jsonify(transactions.process(request.args))
 
 
+@api.route('/transactions/target_suggestions/<int:transaction_id>')
+def transactions_target_suggestions(transaction_id) -> Response:
+	return jsonify(transactions.target_suggestions(transaction_id))
+
+
 ####
 # Scheduled
 ####

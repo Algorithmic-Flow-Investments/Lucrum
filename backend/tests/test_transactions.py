@@ -40,6 +40,36 @@ def test_date():
 	assert t1.date == datetime(2020, 1, 31)
 	assert get_sql_value(Transaction.date, t1.id) == datetime(2020, 1, 31)
 
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-202"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-20"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-2"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01-"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 31-01"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
+	t1.data_imported.info = "CARD PAYMENT TO SAINSBURYS S/MKTS,7.35 GBP, RATE 1.00/GBP ON 2020-01-31"
+	t1.data_inferred.date = None
+	transaction_processors.process_date(t1)
+	assert t1.date == datetime(2020, 1, 31)
+
 	t1.data_manual.date = datetime(2020, 4, 3)
 	db.session.commit()
 	assert t1.date == datetime(2020, 4, 3)
@@ -239,12 +269,16 @@ def test_api():
 @get_context
 def test_deletion():
 	account = Account("test-acc")
-	db.session.add(account)
+	target = Target("test-target")
+	tag = Tag("test-tag")
+	target.tags.append(tag)
+	db.session.add_all([account, target, tag])
 	db.session.flush()
 	ts = [
 		Transaction(account, t, datetime(2020, 2, 3), "CARD PAYMENT TO bank,7.35 GBP, RATE 1.00/GBP ON 31-01-2020")
 		for t in range(5)
 	]
+	ts[0].data_inferred.target = target
 	db.session.add_all(ts)
 	db.session.commit()
 
@@ -255,6 +289,8 @@ def test_deletion():
 		assert [t.id for t in TransactionManual.query.all()] == expected
 
 	_check_all([1, 2, 3, 4, 5])
+
+	# print(ts[0].data_inferred.target.tags)
 
 	db.session.delete(Transaction.query.first())
 	db.session.commit()
@@ -268,3 +304,7 @@ def test_deletion():
 
 	db.session.delete(TransactionInferred.query.first())
 	db.session.commit()
+
+	for t in Transaction.query.all():
+		db.session.delete(t)
+	_check_all([])

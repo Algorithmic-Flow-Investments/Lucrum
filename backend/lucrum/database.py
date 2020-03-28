@@ -7,7 +7,6 @@ DB_FOREIGN_KEY_CONSTRAINTS = True
 
 @event.listens_for(Engine, 'connect')
 def set_sqlite_pragma(dbapi_connection, connection_record):
-	print("HELLO THERE", DB_FOREIGN_KEY_CONSTRAINTS)
 	cursor = dbapi_connection.cursor()
 	if DB_FOREIGN_KEY_CONSTRAINTS:
 		cursor.execute('PRAGMA foreign_keys=ON')
